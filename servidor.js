@@ -21,6 +21,7 @@
 import { createServer } from 'node:http'
 import { valida } from './lib/assinatura.js'
 import { decide } from './lib/interacao.js'
+import { agenda } from './lib/depois.js'
 
 const PORTA = Number(process.env.PORTA || 8787)
 const CHAVE = process.env.DISCORD_PUBLIC_KEY
@@ -83,9 +84,11 @@ const servidor = createServer((req, res) => {
     }
 
     try {
-      const { resposta, log } = await decide(dados, { segredo: SEGREDO })
+      const { resposta, depois, log } = await decide(dados, { segredo: SEGREDO })
       if (log) console.log(`[${new Date().toISOString()}]`, log.acao, log.membro, log.endereco ?? '')
       res.writeHead(200, { 'Content-Type': 'application/json' }).end(JSON.stringify(resposta))
+      // Aqui o processo não é suspenso, então basta aguardar. Ver lib/depois.js.
+      if (depois) await agenda(depois)
     } catch (e) {
       /*
        * Erro interno vira resposta VÁLIDA, não 500. Interação sem resposta fica

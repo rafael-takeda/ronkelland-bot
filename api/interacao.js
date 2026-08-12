@@ -18,6 +18,7 @@
  */
 import { valida } from '../lib/assinatura.js'
 import { decide } from '../lib/interacao.js'
+import { agenda } from '../lib/depois.js'
 
 export const config = { api: { bodyParser: false } }
 
@@ -64,21 +65,29 @@ export default async function handler(req, res) {
 
   /*
    * ---------------------------------------------------------------------------
-   * DEPOIS DE RESPONDER, ESTA FUNCAO NAO TEM MAIS REDE
+   * TRABALHO DEPOIS DA RESPOSTA SÓ EXISTE COM `waitUntil`
    * ---------------------------------------------------------------------------
-   * Tentei mandar uma segunda mensagem apos o `json()` -- o Discord so aceita
-   * acompanhamento em interacao ja respondida, entao tinha que ser depois. A
-   * Vercel derruba a rede junto com a resposta: ECONNRESET contra discord.com
-   * antes do TLS fechar, e numa das tentativas nem o log de erro saiu.
+   * O Discord só aceita mensagem de acompanhamento em interação já respondida,
+   * então ela tem que sair DEPOIS do `json()`. Mas a Vercel suspende a invocação
+   * junto com a resposta — medido: ECONNRESET contra discord.com antes do TLS
+   * fechar, e numa das tentativas nem o log de erro saiu.
    *
-   * Ou seja: tudo que precisa ir pro Discord tem que caber NESTA resposta. Quem
-   * for acrescentar trabalho de fundo aqui vai perder a tarde descobrindo isso
-   * de novo.
+   * `agenda` (lib/depois.js) segura a invocação quando o host oferece isso. Nada
+   * importante passa por ali: se falhar, o que se perde é conveniência.
    */
+  let depois = null
   try {
-    const { resposta, log } = await decide(dados, { segredo: process.env.SEGREDO })
-    if (log) console.log(log.acao, log.membro, log.endereco ?? '')
-    res.status(200).json(resposta)
+    const decisao = await decide(dados, { segredo: process.env.SEGREDO })
+    if (decisao.log) {
+      console.log(
+        decisao.log.acao,
+        decisao.log.membro,
+        decisao.log.endereco ?? '',
+        decisao.log.waitUntil === undefined ? '' : `waitUntil=${decisao.log.waitUntil}`,
+      )
+    }
+    depois = decisao.depois
+    res.status(200).json(decisao.resposta)
   } catch (e) {
     // Erro vira resposta VALIDA: interacao sem resposta fica "pensando" pra
     // sempre na tela da pessoa.
@@ -95,5 +104,13 @@ export default async function handler(req, res) {
         data: { content: 'Something went wrong on my side. Try again in a minute.', flags: 64 },
       })
     }
+    return
+  }
+
+  if (depois) {
+    await agenda(async () => {
+      const r = await depois()
+      console.log('[depois]', r?.ok ? 'entregue' : `falhou ${r?.status ?? '?'}`)
+    })
   }
 }
