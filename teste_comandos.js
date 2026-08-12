@@ -95,5 +95,26 @@ conf(
   'nao usa mais a frase que soava como "ja era, nao tem o que fazer"',
 )
 
+/*
+ * O AVISO DE QUEIMA, e por que ele e um teste e nao so um texto.
+ *
+ * O endereco de verificacao e `sha256(id + segredo)` truncado -- um hash, e nao
+ * uma chave publica derivada de chave privada. NAO EXISTE chave que gaste dali:
+ * nem o membro, nem os Ronkes, nem quem opera o bot.
+ *
+ * A varredura aceita qualquer valor (`procuraPagamentos` olha o destino e nunca
+ * o valor), e dizer isso e util porque carteira reclama de transacao zero. Mas
+ * "qualquer valor" sem o resto convida alguem a mandar 50 RON achando que esta
+ * contribuindo -- e esse alguem nao recupera.
+ *
+ * Se um dia alguem enxugar essa frase por achar o texto longo, isto quebra.
+ */
+for (const m of [primeira, denovo]) {
+  conf(/0 RON/.test(m), 'a instrucao diz pra mandar 0')
+  conf(/destroyed|burn/i.test(m), 'e avisa que o valor enviado e DESTRUIDO')
+  conf(/not a donation/i.test(m), 'e que nao e doacao')
+  conf(/no owner|nobody can ever spend/i.test(m), 'e que o endereco nao tem dono')
+}
+
 console.log(falhas ? `\n${falhas} FALHA(S)\n` : '\nTUDO OK\n')
 process.exitCode = falhas ? 1 : 0
