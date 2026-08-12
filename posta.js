@@ -63,7 +63,15 @@ const api = async (caminho, opcoes = {}) => {
     },
   })
   const texto = await r.text()
-  return { ok: r.ok, status: r.status, dados: texto ? JSON.parse(texto || '{}') : null }
+  let dados = null
+  try {
+    dados = texto ? JSON.parse(texto) : null
+  } catch {
+    // Resposta que não é JSON (204 vazio, HTML de gateway) não pode derrubar o
+    // script — o status já diz o que precisa ser dito.
+    dados = null
+  }
+  return { ok: r.ok, status: r.status, dados }
 }
 
 /*
@@ -85,14 +93,45 @@ if (info.dados.type !== 0) {
 }
 console.log(`canal: #${info.dados.name}`)
 
-// ---------------------------------------- já existe uma fixada nossa?
+/*
+ * JÁ EXISTE UMA NOSSA NESTE CANAL?
+ *
+ * A primeira versão procurava só entre as FIXADAS — e isso amarrava a checagem
+ * de duplicata ao sucesso de fixar. Quando o Discord recusou o pin, a mensagem
+ * publicada ficou invisível pra esta busca, e a execução seguinte publicou uma
+ * segunda. Duas mensagens de verificação idênticas no mesmo canal, e metade da
+ * comunidade clicando na errada.
+ *
+ * Agora procura no HISTÓRICO recente, que não depende de nada ter dado certo
+ * antes. As fixadas continuam sendo olhadas porque uma mensagem antiga pode ter
+ * saído das últimas 100.
+ */
 const eu = await api('/users/@me')
-const fixadas = await api(`/channels/${canal}/pins`)
-const antiga = (fixadas.ok ? fixadas.dados : []).find(
-  (m) =>
-    m.author?.id === eu.dados?.id &&
-    m.components?.[0]?.components?.some((c) => c.custom_id === 'verificar'),
-)
+const [recentes, fixadas] = await Promise.all([
+  api(`/channels/${canal}/messages?limit=100`),
+  api(`/channels/${canal}/pins`),
+])
+
+const nossa = (m) =>
+  m.author?.id === eu.dados?.id &&
+  m.components?.[0]?.components?.some((c) => c.custom_id === 'verificar')
+
+const candidatas = [
+  ...(Array.isArray(recentes.dados) ? recentes.dados : []),
+  ...(Array.isArray(fixadas.dados) ? fixadas.dados : []),
+].filter(nossa)
+
+// A MAIS ANTIGA, e não a mais nova: se houver duplicata, quem fica é a que a
+// comunidade já pode ter visto e fixado.
+const antiga = candidatas.sort((a, b) => (a.id < b.id ? -1 : 1))[0]
+
+if (candidatas.length > 1) {
+  console.log(`\nATENÇÃO: há ${candidatas.length} mensagens de verificação neste canal.`)
+  for (const m of candidatas) {
+    console.log(`  https://discord.com/channels/${info.dados.guild_id}/${canal}/${m.id}`)
+  }
+  console.log('Vou editar a mais antiga. Apague as outras à mão.')
+}
 
 if (antiga) {
   const r = await api(`/channels/${canal}/messages/${antiga.id}`, {
@@ -103,7 +142,7 @@ if (antiga) {
     console.error(`Não consegui editar a mensagem existente (${r.status}).`)
     process.exit(1)
   }
-  console.log(`\nJá havia uma fixada — editei aquela, não criei outra.`)
+  console.log(`\nJá havia uma neste canal — editei aquela, não criei outra.`)
   console.log(`https://discord.com/channels/${info.dados.guild_id}/${canal}/${antiga.id}`)
   process.exit(0)
 }
@@ -118,6 +157,21 @@ if (!nova.ok) {
   process.exit(1)
 }
 
-const fixa = await api(`/channels/${canal}/messages/${nova.dados.id}/pin`, { method: 'PUT' })
-console.log('\npublicada' + (fixa.ok ? ' e fixada' : ' (mas NÃO consegui fixar — falta "Manage Messages")'))
+/*
+ * FIXAR É `/pins/`, e não `/messages/<id>/pin`.
+ *
+ * O segundo caminho existe na minha cabeça e não na API: devolve 404. E como o
+ * código tratava qualquer falha como "falta permissão", o 404 virava uma
+ * mensagem afirmando uma causa errada — e eu fui atrás da permissão, que estava
+ * certa, em vez do caminho, que estava errado.
+ *
+ * Por isso agora o motivo REAL é impresso. Um erro que chuta a causa custa mais
+ * caro que um erro que só diz o que aconteceu.
+ */
+const fixa = await api(`/channels/${canal}/pins/${nova.dados.id}`, { method: 'PUT' })
+console.log('\npublicada' + (fixa.ok ? ' e fixada' : ''))
+if (!fixa.ok) {
+  console.log(`NÃO fixada — o Discord respondeu ${fixa.status}.`)
+  console.log('A mensagem está publicada; dá pra fixar na mão (botão direito → Fixar).')
+}
 console.log(`https://discord.com/channels/${info.dados.guild_id}/${canal}/${nova.dados.id}`)
