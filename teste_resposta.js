@@ -79,6 +79,21 @@ conf(linhas[iEndereco - 1].trim() === '```', 'dentro de um bloco de código')
 conf(linhas[iEndereco + 1].trim() === '```', 'que fecha logo depois dele, sem mais nada junto')
 conf(iEndereco <= 4, 'e no TOPO da mensagem, não enterrado no meio do texto', `linha ${iEndereco} de ${linhas.length}`)
 
+/*
+ * O ENDEREÇO APARECE UMA VEZ SÓ — aqui OU na segunda mensagem, nunca nas duas.
+ *
+ * Quando o host segura a invocação, a segunda mensagem sai e o endereço mora lá,
+ * sozinho, com o botão de copiar. Repetir o mesmo bloco nas duas confunde e,
+ * pior, faz a pessoa copiar o de cima — que é justamente o difícil no celular.
+ */
+const comSegunda = msg.comoVerificar(ENDERECO, 10, null, true)
+conf(!comSegunda.includes(ENDERECO), 'com a segunda mensagem garantida, o endereço NÃO se repete na primeira')
+conf(/address \*\*below\*\*/i.test(comSegunda), 'e ela aponta pra baixo')
+conf(msg.soOEndereco(ENDERECO).includes(ENDERECO), 'a segunda carrega o endereço')
+
+const semSegunda = msg.comoVerificar(ENDERECO, 10, null, false)
+conf(semSegunda.includes(ENDERECO), 'sem a segunda, o endereço fica na primeira — ninguém pode ficar sem ele')
+
 // ------------------------------------------------- a mensagem fixa do canal
 const canal = mensagemDoCanal()
 conf(!canal.flags, 'a mensagem fixa do canal é pública — ela é pra todos')

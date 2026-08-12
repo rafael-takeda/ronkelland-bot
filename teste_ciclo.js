@@ -166,18 +166,18 @@ function montaRede(mundo) {
  */
 esqueceTudo()
 let conta = montaRede({ token: 0, nfts: 0, score: 0 })
-let m = await medidasDe(CARTEIRA, COMPLETO)
+let m = await medidasDe(CARTEIRA, COMPLETO, { podeVarrer: true })
 conf(conta.dono === 0, 'carteira sem NFT nenhum: ZERO chamadas de ownerOf', `${conta.dono}`)
 conf(m.medidas[`ids:${NFT}:${LORD}`] === 0, 'e a medida do Lord sai zero mesmo assim')
 
 esqueceTudo()
 conta = montaRede({ token: 5, nfts: 2, score: 0, tem1de1: [] })
-await medidasDe(CARTEIRA, COMPLETO)
+await medidasDe(CARTEIRA, COMPLETO, { podeVarrer: true })
 conf(conta.dono === UM_DE_UM.length, 'carteira COM NFT: aí sim pergunta id por id', `${conta.dono}`)
 
 esqueceTudo()
 conta = montaRede({ token: 5, nfts: 9, score: 0, tem1de1: [24] })
-m = await medidasDe(CARTEIRA, COMPLETO)
+m = await medidasDe(CARTEIRA, COMPLETO, { podeVarrer: true })
 conf(m.medidas[`ids:${NFT}:${LORD}`] === 1, 'quem tem o 1/1 mede 1')
 conf(conta.dono === 2, 'e para no que encontrou, sem perguntar o resto', `${conta.dono} de ${UM_DE_UM.length}`)
 
@@ -188,7 +188,7 @@ conf(conta.dono === 2, 'e para no que encontrou, sem perguntar o resto', `${cont
  */
 esqueceTudo()
 conta = montaRede({ token: 2000000, nfts: 3, score: 5000, tem1de1: [777] })
-m = await medidasDe(CARTEIRA, COMPLETO)
+m = await medidasDe(CARTEIRA, COMPLETO, { podeVarrer: true })
 conf(conta.saldo === 2, 'cinco regras, DOIS balanceOf (um por contrato)', `${conta.saldo}`)
 conf(conta.score === 1, 'e uma consulta de score só', `${conta.score}`)
 conf(m.incerto.length === 0, 'nada incerto quando tudo responde')
@@ -207,7 +207,7 @@ conf(merece.has(SABIO), 'inclusive o cargo por score')
  */
 esqueceTudo()
 conta = montaRede({ token: 2000000, nfts: 3, score: 5000, tem1de1: [777], scoreQuebrado: true })
-m = await medidasDe(CARTEIRA, COMPLETO)
+m = await medidasDe(CARTEIRA, COMPLETO, { podeVarrer: true })
 conf(!('score' in m.medidas), 'score fora do ar: a medida fica AUSENTE, não vira zero')
 conf(m.incerto.includes('score'), 'e entra na lista de incertos')
 conf(!new Set(cargosPara(m.medidas, COMPLETO)).has(SABIO), 'sem a medida, o cargo não é concedido')
@@ -215,6 +215,77 @@ conf(
   decideCargos(m.medidas, COMPLETO, [SABIO]).tirar.includes(SABIO),
   'e SERIA removido — por isso `aplicaCargos` zera a remoção quando há incerto',
 )
+
+/* ==========================================================================
+ * O MAPA DOS 1/1 — a trava que decide se ele pode conceder
+ * ==========================================================================
+ * Os 107 `ownerOf` custam 45 segundos medidos e estouram sozinhos o teto de 100
+ * chamadas/min do RPC da Ronin. A saída é uma FOTO de quem tem cada token,
+ * tirada quando ninguém espera.
+ *
+ * Foto é passado. Usá-la como prova POSITIVA daria o cargo mais raro do servidor
+ * a quem já vendeu o 1/1 — bastaria vender e apertar o botão antes da próxima
+ * foto, quantas vezes quisesse. Estes testes existem por causa disso.
+ */
+console.log('\nO MAPA DOS 1/1\n')
+
+const AGORA_MAPA = Date.now()
+const mapaCom = (extra = {}) => ({
+  contrato: NFT,
+  completo: true,
+  quando: AGORA_MAPA,
+  donos: { [CARTEIRA]: [24] },
+  ...extra,
+})
+
+esqueceTudo()
+conta = montaRede({ token: 0, nfts: 9, score: 0, tem1de1: [24] })
+m = await medidasDe(CARTEIRA, COMPLETO, { lords: mapaCom() })
+conf(m.medidas[`ids:${NFT}:${LORD}`] === 1, 'quem está na foto E na cadeia recebe')
+conf(conta.dono === 1, 'com UMA chamada, não 107', `${conta.dono}`)
+
+/*
+ * O CASO QUE A TRAVA EXISTE PRA IMPEDIR: está na foto, mas já vendeu. A cadeia
+ * diz que o dono é outro, e é a cadeia que decide.
+ */
+esqueceTudo()
+conta = montaRede({ token: 0, nfts: 9, score: 0, tem1de1: [] })
+m = await medidasDe(CARTEIRA, COMPLETO, { lords: mapaCom() })
+conf(m.medidas[`ids:${NFT}:${LORD}`] === 0, 'quem está na foto mas JÁ VENDEU não recebe — a cadeia confirma')
+
+esqueceTudo()
+conta = montaRede({ token: 0, nfts: 9, score: 0, tem1de1: [24] })
+m = await medidasDe(CARTEIRA, COMPLETO, { lords: mapaCom({ donos: {} }) })
+conf(m.medidas[`ids:${NFT}:${LORD}`] === 0, 'quem não está na foto é zero')
+conf(conta.dono === 0, 'e isso não custa chamada nenhuma', `${conta.dono}`)
+
+/*
+ * FOTO QUE NÃO SERVE VIRA INCERTO, e incerto não concede NEM REMOVE. Um caminho
+ * rápido nunca pode tirar o cargo mais raro do servidor por não ter tido tempo.
+ */
+for (const [rotulo, mapa] of [
+  ['sem foto', undefined],
+  ['foto incompleta', mapaCom({ completo: false })],
+  ['foto velha', mapaCom({ quando: AGORA_MAPA - 4 * 60 * 60 * 1000 })],
+  ['foto de outro contrato', mapaCom({ contrato: '0x9999999999999999999999999999999999999999' })],
+]) {
+  esqueceTudo()
+  conta = montaRede({ token: 0, nfts: 9, score: 0, tem1de1: [24] })
+  m = await medidasDe(CARTEIRA, COMPLETO, { lords: mapa })
+  conf(!(`ids:${NFT}:${LORD}` in m.medidas), `${rotulo}: vira INCERTO, não zero`)
+  conf(m.incerto.includes(`ids:${NFT}:${LORD}`), `  e entra na lista de incertos`)
+  conf(conta.dono === 0, `  sem varrer os 107 (quem não pode varrer, não varre)`, `${conta.dono}`)
+}
+
+/*
+ * E QUEM PODE VARRER continua varrendo: é a varredura, que tem tempo e não tem
+ * ninguém olhando uma tela.
+ */
+esqueceTudo()
+conta = montaRede({ token: 0, nfts: 9, score: 0, tem1de1: [24] })
+m = await medidasDe(CARTEIRA, COMPLETO, { podeVarrer: true })
+conf(m.medidas[`ids:${NFT}:${LORD}`] === 1, 'sem foto, quem PODE varrer acha do jeito caro')
+conf(conta.dono > 1, 'e aí sim custa várias chamadas', `${conta.dono}`)
 
 globalThis.fetch = original
 

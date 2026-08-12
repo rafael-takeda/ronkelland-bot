@@ -23,7 +23,7 @@
  * primeira coisa que eles descartam — medido lá: pedindo de 5 em 5 minutos,
  * entregava uma por hora. Então cada execução FICA VIVA e faz o laço por dentro.
  */
-import { limpaDesamarrados, revarredura, varreduraDePagamento } from './lib/ciclo.js'
+import { atualizaLords, limpaDesamarrados, revarredura, varreduraDePagamento } from './lib/ciclo.js'
 import { validaRegras } from './lib/regras.js'
 import { regrasEmUso } from './lib/painelrota.js'
 
@@ -173,6 +173,29 @@ if (!servidor || !segredo) {
         )
       }
     }
+    /*
+     * A FOTO DOS 1/1 SÓ É TIRADA COM A FILA VAZIA.
+     *
+     * São 107 `ownerOf` a 700 ms — mais de um minuto, e o teto do RPC da Ronin é
+     * 100 chamadas por minuto. Fazer isso com alguém esperando seria roubar a
+     * cota de quem está olhando a tela agora, e foi exatamente essa conta que
+     * derrubou a varredura hoje com 429.
+     *
+     * Com a fila vazia a volta custa uma chamada e dorme 60 segundos. É o tempo
+     * ocioso pagando pela regra mais cara do sistema.
+     */
+    if (r.pendentes === 0) {
+      const foto = await atualizaLords(regras).catch((e) => ({ erro: e.message }))
+      if (foto?.donos !== undefined) {
+        console.log(
+          `${marca}  foto dos 1/1: ${foto.donos} dono(s) em ${foto.tokens} tokens` +
+            (foto.completo ? '' : '  INCOMPLETA — a regra do Lord fica incerta até sair inteira'),
+        )
+      } else if (foto?.erro) {
+        console.error(`${marca}  foto dos 1/1 falhou: ${foto.erro.slice(0, 80)}`)
+      }
+    }
+
     if (Date.now() >= ate) break
     await new Promise((f) => setTimeout(f, intervalo))
   } while (Date.now() < ate)
