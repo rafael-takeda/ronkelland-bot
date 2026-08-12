@@ -7,7 +7,8 @@
       "contrato": "0xf988F63Bf26c3Ed3fBf39922149E3E7B1e5c27Cb",
       "tipo": "ERC-20",
       "casas": 18,
-      "minimo": 1
+      "minimo": 1,
+      "rotulo": "$RONKE"
     },
     {
       "nome": "Ronke Chad",
@@ -15,7 +16,8 @@
       "contrato": "0xf988F63Bf26c3Ed3fBf39922149E3E7B1e5c27Cb",
       "tipo": "ERC-20",
       "casas": 18,
-      "minimo": 1000000
+      "minimo": 1000000,
+      "rotulo": "$RONKE"
     },
     {
       "nome": "Ronkeverse",
@@ -23,7 +25,8 @@
       "contrato": "0x810b6d1374ac7ba0e83612e7d49f49a13f1de019",
       "tipo": "ERC-721",
       "casas": 0,
-      "minimo": 1
+      "minimo": 1,
+      "rotulo": "Ronkeverse NFTs"
     },
     {
       "nome": "Ronkeverse chad",
@@ -31,7 +34,8 @@
       "contrato": "0x810b6d1374ac7ba0e83612e7d49f49a13f1de019",
       "tipo": "ERC-721",
       "casas": 0,
-      "minimo": 10
+      "minimo": 10,
+      "rotulo": "Ronkeverse NFTs"
     },
     {
       "nome": "Ronke Lord",

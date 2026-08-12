@@ -103,7 +103,7 @@ const servidor = createServer((req, res) => {
 })
 
 servidor.listen(PORTA, () => {
-  console.log(`RonkeLand ouvindo na porta ${PORTA}`)
+  console.log(`Ronkelland ouvindo na porta ${PORTA}`)
   console.log('A URL pública deste servidor vai no painel do Discord, em')
   console.log('"General Information" -> "Interactions Endpoint URL".')
 })

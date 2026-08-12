@@ -25,9 +25,16 @@
  */
 import { revarredura, varreduraDePagamento } from './lib/ciclo.js'
 import { validaRegras } from './lib/regras.js'
-import { readFileSync } from 'node:fs'
+import { regrasEmUso } from './lib/painelrota.js'
 
-const regras = JSON.parse(readFileSync(new URL('./regras.json', import.meta.url), 'utf8')).regras
+/*
+ * AS REGRAS VÊM DO PAINEL, quando ele foi usado, e do arquivo quando não.
+ *
+ * Ler direto do arquivo aqui faria a varredura ignorar tudo que o admin criou no
+ * Discord — e o sintoma seria "criei a regra e não aconteceu nada", sem nenhuma
+ * pista de que existem duas fontes.
+ */
+const regras = await regrasEmUso()
 const servidor = process.env.DISCORD_GUILD_ID
 const segredo = process.env.SEGREDO
 
@@ -43,6 +50,20 @@ const segredo = process.env.SEGREDO
  * dez minutos; um bot que sobe e concede errado é um problema que só aparece
  * quando alguém reclama.
  */
+/*
+ * LISTA VAZIA NÃO É ERRO, é uma escolha.
+ *
+ * O admin pode ter tirado a última regra pelo painel. Nesse caso não há nada a
+ * fazer — e nada a desfazer: sem regra, `cargosGeridos` é vazio, então a
+ * revarredura não tira cargo de ninguém. Os cargos simplesmente congelam.
+ *
+ * Derrubar a execução aqui transformaria essa escolha num bot fora do ar.
+ */
+if (regras.length === 0) {
+  console.log('nenhuma regra configurada — nada a fazer')
+  process.exit(0)
+}
+
 const problemas = validaRegras(regras)
 if (problemas.length) {
   console.error('regras.json tem problema — nada roda até arrumar:')

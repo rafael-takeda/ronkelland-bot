@@ -23,14 +23,18 @@ conf(!!verify && !!rl, 'os dois comandos existem')
 conf(!verify.default_member_permissions, '/verify e livre pra qualquer membro')
 conf(rl.default_member_permissions === '32', '/ronkelland exige MANAGE_GUILD', rl.default_member_permissions)
 
-const sub = rl.options[0].options.map((s) => s.name)
-conf(sub.join() === 'add,list,remove', 'subcomandos: add, list, remove', sub.join(', '))
-
-const add = rl.options[0].options[0]
-const tipos = add.options.map((o) => `${o.name}:${o.type}`)
-conf(add.options.find((o) => o.name === 'role').type === 8, 'o campo "role" e SELETOR de cargo (tipo 8)', tipos.join(' '))
-conf(add.options.every((o) => o.required), 'os tres campos de add sao obrigatorios')
-conf(add.options.find((o) => o.name === 'minimum').min_value === 1, 'minimo nao aceita zero')
+/*
+ * `/ronkelland` NAO TEM SUBCOMANDO, e isso e a decisao.
+ *
+ * A primeira versao era `/ronkelland rule add <contrato> <minimo> <cargo>`:
+ * obrigava o admin a saber a forma do comando de cor e a digitar tudo numa
+ * linha, sem enxergar o que ja existia. Agora o comando so ABRE o painel, e a
+ * lista de cargos, a janelinha e o seletor de canal moram la.
+ *
+ * O teste afirma a ausencia de proposito: se alguem reintroduzir uma opcao aqui,
+ * e porque esta voltando pro caminho digitado sem querer.
+ */
+conf((rl.options || []).length === 0, '/ronkelland nao tem opcao nenhuma — ele so abre o painel')
 
 // Forma quebrada tem que ser PEGA. Se o validador aprova qualquer coisa, ele nao serve.
 const ruins = [
