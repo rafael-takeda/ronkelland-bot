@@ -66,6 +66,23 @@ conf(!/0x[0-9a-f]{40}/i.test(cru), 'a mensagem pública não contém endereço n
 conf(!/[áàâãéêíóôõúçÁÀÂÃÉÊÍÓÔÕÚÇ]/.test(cru), 'a mensagem do canal está em inglês')
 conf(/never ask you to connect a wallet/i.test(cru), 'e repete a promessa: nunca pedimos conexão')
 
+/*
+ * O AVISO DE QUEIMA TEM QUE ESTAR NA MENSAGEM PÚBLICA, e não só na instrução.
+ *
+ * A instrução é efêmera: some quando a pessoa recarrega o Discord, e ninguém
+ * consegue reler nem mostrar pra outro. Esta aqui é a única que fica — a única
+ * que alguém aponta pra quem chegou hoje, ou pra quem quer conferir antes de
+ * mexer na carteira.
+ *
+ * O endereço é `sha256(id + segredo)` truncado: um hash, não uma chave pública
+ * derivada de chave privada. Não existe chave que gaste dali. Um aviso sobre
+ * dinheiro que só mora num lugar que evapora é um aviso pela metade.
+ */
+conf(/no owner/i.test(cru), 'avisa que o endereço não tem dono')
+conf(/destroyed/i.test(cru), 'e que o que for mandado é destruído')
+conf(/not a donation/i.test(cru), 'e que não é doação')
+conf(/0 RON/.test(cru), 'e continua dizendo pra mandar 0')
+
 console.log('\n  --- o que fica fixado no canal, visível a todos ---\n')
 console.log('  ' + canal.embeds[0].title)
 console.log(canal.embeds[0].description.split('\n').map((l) => '  ' + l).join('\n'))
