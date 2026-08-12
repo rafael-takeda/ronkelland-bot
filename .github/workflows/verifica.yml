@@ -26,6 +26,8 @@ jobs:
   pagamento:
     if: github.event.schedule != '17 5 * * *'
     runs-on: ubuntu-latest
+    permissions:
+      actions: write # disparar a proxima (ver o fim do job)
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -41,6 +43,23 @@ jobs:
           SEGREDO: ${{ secrets.SEGREDO }}
           UPSTASH_REDIS_REST_URL: ${{ secrets.UPSTASH_REDIS_REST_URL }}
           UPSTASH_REDIS_REST_TOKEN: ${{ secrets.UPSTASH_REDIS_REST_TOKEN }}
+
+      # A PROXIMA EXECUCAO E DISPARADA POR ESTA -- o cron vira rede de seguranca.
+      #
+      # Aprendido no bot de vendas, no mesmo dia: o cron do Actions passou UMA
+      # HORA E MEIA sem disparar (00:31 -> 02:00 de 12/08/2026) e duas vendas
+      # ficaram sem anuncio. Fazer a execucao durar 50 min so ajuda se ALGUMA
+      # execucao comecar.
+      #
+      # Aqui o estrago seria pior: o membro manda a transacao e fica olhando pro
+      # nada, sem saber se errou alguma coisa.
+      #
+      # `if: always()` porque falha e quando mais importa ter a proxima.
+      - name: chama a proxima execucao
+        if: always() && github.event_name != 'workflow_dispatch'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh workflow run verifica.yml --repo ${{ github.repository }}
 
   revarre:
     if: github.event.schedule == '17 5 * * *'
