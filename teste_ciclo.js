@@ -11,6 +11,8 @@
 import { cargosPara, decideCargos } from './lib/regras.js'
 import { medidasDe } from './lib/ciclo.js'
 import { esqueceTudo } from './lib/score.js'
+import { avisaDepois } from './lib/discord.js'
+import { msg } from './lib/mensagens.js'
 
 let falhas = 0
 const conf = (c, m, e = '') => {
@@ -215,6 +217,67 @@ conf(
 )
 
 globalThis.fetch = original
+
+/* ==========================================================================
+ * O AVISO — a única coisa que a pessoa recebe sem ter clicado
+ * ==========================================================================
+ * O fluxo termina minutos depois do clique, num processo separado. Sem aviso,
+ * quem mandou a transação fica sem saber se deu certo — e silêncio depois de
+ * mandar dinheiro pra um endereço é indistinguível de erro.
+ */
+console.log('\nO AVISO DE VERIFICAÇÃO\n')
+
+const CARTEIRA_AVISO = '0xc24566e78709ce989db5211bb088ead4dce81b74'
+const comCargos = msg.verificado(CARTEIRA_AVISO, [HOLDER, WHALE])
+
+conf(comCargos.includes('0xc245') && comCargos.includes('1b74'), 'diz QUAL carteira ficou amarrada')
+conf(!comCargos.includes(CARTEIRA_AVISO), 'e abrevia — 42 caracteres numa frase ninguém lê')
+conf(
+  comCargos.includes(`<@&${HOLDER}>`) && comCargos.includes(`<@&${WHALE}>`),
+  'menciona os cargos com <@&id>, pra o Discord desenhar a pílula de verdade',
+)
+conf(comCargos.toLowerCase().includes('sell'), 'avisa que vender tira o cargo')
+
+/*
+ * QUEM NÃO ALCANÇOU NADA TAMBÉM PRECISA DE RESPOSTA. Sem ela, a pessoa que
+ * verificou uma carteira vazia fica esperando pra sempre uma mensagem que nunca
+ * vem, e conclui que o bot quebrou.
+ */
+const semCargo = msg.verificado(CARTEIRA_AVISO, [])
+conf(semCargo.includes('Verified'), 'carteira sem nada AINDA recebe confirmação')
+conf(!semCargo.includes('<@&'), 'e não menciona cargo nenhum')
+conf(semCargo.toLowerCase().includes('not hold enough'), 'e explica por que não veio cargo')
+
+/*
+ * NÃO PODE SER DM, E ISSO É SEGURANÇA.
+ *
+ * A mensagem fixada promete "we will never DM you first". Um membro acostumado a
+ * receber DM legítima do bot é um membro preparado pra cair na DM do golpista
+ * que copia nome e avatar. A promessa só vale enquanto for absoluta.
+ *
+ * Por isso o aviso sai pela webhook da interação — o mesmo lugar onde a pessoa
+ * clicou. Este teste falha se alguém trocar por DM sem pensar nisso.
+ */
+let caminhoUsado = ''
+globalThis.fetch = async (url, opcoes) => {
+  caminhoUsado = String(url)
+  return new Response('{}', { status: 200, headers: { 'Content-Type': 'application/json' } })
+}
+await avisaDepois('app123', 'token456', 'oi')
+globalThis.fetch = original
+
+conf(caminhoUsado.includes('/webhooks/app123/token456'), 'o aviso sai pela webhook da interação', caminhoUsado.replace('https://discord.com/api/v10', ''))
+conf(!/\/users\/@me\/channels/.test(caminhoUsado), 'e NÃO abre DM — a mensagem fixada promete que o bot nunca manda DM primeiro')
+
+/*
+ * AVISO QUE FALHA NÃO PODE DERRUBAR A VARREDURA. Token vencido é o caso comum
+ * (varredura atrasada), e o cargo já foi dado nessa altura. Se isto estourasse,
+ * o aviso de um custaria a verificação de todos os que vêm depois na fila.
+ */
+globalThis.fetch = async () => new Response('{}', { status: 401 })
+const ruim = await avisaDepois('app', 'vencido', 'oi')
+globalThis.fetch = original
+conf(ruim.ok === false && ruim.status === 401, 'token vencido devolve falha em vez de estourar', String(ruim.status))
 
 console.log(falhas ? `\n${falhas} FALHA(S)\n` : '\nTUDO OK\n')
 process.exitCode = falhas ? 1 : 0

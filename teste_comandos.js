@@ -48,16 +48,23 @@ for (const [c, oQue] of ruins) conf(validaComandos([c]).length > 0, `recusa ${oQ
 console.log('\n  --- o que aparece pro membro (ingles) ---\n')
 const amostra = [
   msg.comoVerificar('0xa976ecb0272a977a34322c08fa0c49f5b1c1f735', 30),
-  msg.verificado(126, '@Ronkeverse Holder'),
+  msg.verificado('0xc24566e78709ce989db5211bb088ead4dce81b74', ['1350620589613776976']),
+  msg.verificado('0xc24566e78709ce989db5211bb088ead4dce81b74', []),
   msg.semNft,
 ]
 for (const t of amostra) console.log(t.split('\n').map((l) => '  ' + l).join('\n') + '\n')
 
-// Argumentos genericos que servem pra todas: a segunda posicao e uma LISTA
-// porque `cargoRecusado` mapeia os motivos. Sem isso o varredor quebra -- e foi
-// o que aconteceu na primeira tentativa.
+/*
+ * Argumentos genericos que servem pra TODAS as mensagens: a primeira posicao tem
+ * que aceitar `.slice` (endereco) e a segunda tem que ser LISTA, porque
+ * `cargoRecusado` mapeia os motivos e `verificado` mapeia os cargos.
+ *
+ * Esta varredura existe pra pegar acento portugues e link em texto que o membro
+ * le. Ela roda sobre o objeto inteiro de proposito: mensagem nova entra na
+ * conferencia sem ninguem precisar lembrar de adiciona-la.
+ */
 const tudo = Object.values(msg)
-  .map((v) => (typeof v === 'function' ? v('x', ['y'], 'z') : v))
+  .map((v) => (typeof v === 'function' ? v('0xabcdef0123456789abcdef0123456789abcdef01', ['y'], 'z') : v))
   .join(' ')
 conf(!/[áàâãéêíóôõúçÁÀÂÃÉÊÍÓÔÕÚÇ]/.test(tudo), 'nenhuma mensagem do usuario tem acento portugues')
 conf(!/\bhttps?:\/\//.test(tudo), 'nenhuma mensagem manda o membro clicar em link')

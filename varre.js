@@ -101,6 +101,9 @@ if (!servidor || !segredo) {
           `  VERIFICADO ${v.membro}  carteira ${v.carteira.slice(0, 10)}…` +
             `  +${v.ganhou.length} cargo(s)` +
             (v.desamarrado ? `  (carteira era de ${v.desamarrado})` : '') +
+            // O aviso é a parte que a PESSOA vê. Se ele falha, o cargo saiu e
+            // ninguém contou — some do log e vira "o bot não fez nada".
+            (v.avisou && v.avisou !== 'ok' ? `  AVISO ${v.avisou}` : '') +
             (v.erros.length ? `  ERROS: ${v.erros.join('; ')}` : ''),
         )
       }
