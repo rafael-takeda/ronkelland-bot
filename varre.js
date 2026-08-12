@@ -24,11 +24,31 @@
  * entregava uma por hora. Então cada execução FICA VIVA e faz o laço por dentro.
  */
 import { revarredura, varreduraDePagamento } from './lib/ciclo.js'
+import { validaRegras } from './lib/regras.js'
 import { readFileSync } from 'node:fs'
 
 const regras = JSON.parse(readFileSync(new URL('./regras.json', import.meta.url), 'utf8')).regras
 const servidor = process.env.DISCORD_GUILD_ID
 const segredo = process.env.SEGREDO
+
+/*
+ * A CONFERÊNCIA DAS REGRAS, NA PARTIDA E ANTES DE TUDO.
+ *
+ * `validaRegras` existia e nunca era chamada — e o preço disso foi concreto: a
+ * regra do `Ronke Lord` ficou no arquivo, mal formada, sendo ignorada em
+ * silêncio. Ninguém percebeu porque o sintoma de uma regra morta é NADA
+ * ACONTECER, que é indistinguível de "ninguém se qualificou ainda".
+ *
+ * Regra quebrada agora derruba a execução. Um bot que não sobe é um problema de
+ * dez minutos; um bot que sobe e concede errado é um problema que só aparece
+ * quando alguém reclama.
+ */
+const problemas = validaRegras(regras)
+if (problemas.length) {
+  console.error('regras.json tem problema — nada roda até arrumar:')
+  for (const p of problemas) console.error('  ' + p)
+  process.exit(1)
+}
 
 if (!servidor || !segredo) {
   console.error('Falta DISCORD_GUILD_ID ou SEGREDO.')

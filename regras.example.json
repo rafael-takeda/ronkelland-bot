@@ -1,8 +1,42 @@
 {
   "_leia": "Copie para regras.json e troque os IDs. IDs, nao nomes -- nome muda, id nao.",
   "_comoPegarOId": "No Discord: Configuracoes do servidor -> Cargos -> clique no cargo -> ... -> Copiar ID. Precisa do Modo Desenvolvedor ligado (Configuracoes do usuario -> Avancado).",
+  "_tipos": {
+    "ERC-20": "QUANTO tem de um token. 'casas' e o numero de decimais do contrato (quase sempre 18), e 'minimo' e a quantidade em unidades inteiras.",
+    "ERC-721": "QUANTOS NFTs tem da colecao. 'casas' e 0 e 'minimo' e a contagem.",
+    "ERC-721-ids": "QUAIS NFTs tem. Serve pra 1/1: ter QUALQUER um da lista 'ids' basta. Nao leva 'minimo' -- a resposta e sim ou nao.",
+    "score": "O Ronke Score da carteira, da API de analytics. NAO leva 'contrato': nao e posse, e historico. 'minimo' e a pontuacao de corte."
+  },
+  "_sobreOScore": "Score e uma foto refeita 1x por dia as 07:00 UTC (https://ronke-analytics.vercel.app/developers). Quem comprar hoje so ve o cargo amanha -- e a mensagem pro membro tem que dizer isso, senao ele acha que o bot quebrou.",
   "regras": [
-    { "cargo": "111111111111111111", "minimo": 1,  "nome": "Ronkeverse Holder" },
-    { "cargo": "222222222222222222", "minimo": 10, "nome": "Ronkeverse Whale" }
+    {
+      "nome": "Ronke Holder",
+      "cargo": "111111111111111111",
+      "tipo": "ERC-20",
+      "contrato": "0xf988F63Bf26c3Ed3fBf39922149E3E7B1e5c27Cb",
+      "casas": 18,
+      "minimo": 1
+    },
+    {
+      "nome": "Ronkeverse Holder",
+      "cargo": "222222222222222222",
+      "tipo": "ERC-721",
+      "contrato": "0x810b6d1374ac7ba0e83612e7d49f49a13f1de019",
+      "casas": 0,
+      "minimo": 1
+    },
+    {
+      "nome": "Ronke Lord",
+      "cargo": "333333333333333333",
+      "tipo": "ERC-721-ids",
+      "contrato": "0x810b6d1374ac7ba0e83612e7d49f49a13f1de019",
+      "ids": [14, 24, 777]
+    },
+    {
+      "nome": "Ronke Sage",
+      "cargo": "444444444444444444",
+      "tipo": "score",
+      "minimo": 2000
+    }
   ]
 }
