@@ -1,6 +1,5 @@
 {
   "rewrites": [{ "source": "/", "destination": "/api/interacao" }],
-  "_leia": "includeFiles nao e opcional: o painel le regras.json do disco em tempo de execucao, e o empacotador da Vercel so inclui o que ele consegue rastrear por import. Sem esta linha o arquivo pode ficar de fora, e o sintoma seria o painel mostrar 'nenhuma regra' com cinco configuradas -- silencioso, e do lado que engana.",
   "functions": {
     "api/interacao.js": {
       "includeFiles": "regras.json"
