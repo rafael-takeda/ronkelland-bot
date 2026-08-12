@@ -89,7 +89,7 @@ conf(denovo.startsWith('**Re-check'), 'quem ja verificou le "Re-check" -- e nao 
 conf(denovo.includes('0xc245') && denovo.includes('1b74'), 'diz qual carteira esta amarrada hoje')
 conf(/same wallet/i.test(denovo), 'explica o que a MESMA carteira faz')
 conf(/different wallet/i.test(denovo), 'e o que uma carteira DIFERENTE faz')
-conf(denovo.includes('0 RON'), 'e continua sendo a mesma transacao de 0 RON')
+conf(denovo.includes('0.00001 RON'), 'e continua sendo a mesma transacao minima')
 conf(
   !/currently verified/i.test(denovo),
   'nao usa mais a frase que soava como "ja era, nao tem o que fazer"',
@@ -110,8 +110,16 @@ conf(
  * Se um dia alguem enxugar essa frase por achar o texto longo, isto quebra.
  */
 for (const m of [primeira, denovo]) {
-  conf(/0 RON/.test(m), 'a instrucao diz pra mandar 0')
-  conf(/destroyed|burn/i.test(m), 'e avisa que o valor enviado e DESTRUIDO')
+  /*
+   * ZERO NAO PODE VOLTAR. A carteira da Ronin RECUSA transacao de valor zero, e
+   * a instrucao antiga mandava a pessoa fazer isso -- quem tentava concluia que
+   * o bot estava quebrado. Os pagamentos reais que chegaram foram todos de
+   * 0,00001 RON, contornando o texto por conta propria.
+   */
+  conf(/0\.00001 RON/.test(m), 'a instrucao pede um valor MINIMO que a carteira aceita')
+  conf(/Zero does not/i.test(m), 'e avisa explicitamente que zero nao funciona')
+  conf(!/\*\*Send 0 RON\.\*\*/.test(m), 'e NAO manda mandar zero, que e impossivel')
+  conf(/destroyed/i.test(m), 'e avisa que o valor enviado e DESTRUIDO')
   conf(/not a donation/i.test(m), 'e que nao e doacao')
   conf(/no owner|nobody can ever spend/i.test(m), 'e que o endereco nao tem dono')
 }
