@@ -88,7 +88,16 @@ function rede(mundo = {}) {
     if (corpo.method === 'eth_getTransactionByHash') {
       return json({ result: { to: ENDERECO, from: CARTEIRA, hash: corpo.params[0], blockNumber: '0x64' } })
     }
-    if (corpo.method === 'eth_call') return json({ result: '0x' + (3).toString(16).padStart(64, '0') })
+    /*
+     * `medidasCairam` derruba SO o `eth_call` -- o pagamento e confirmado
+     * normalmente, e o que falha e a leitura do saldo. E o caso que produziu o
+     * bug em producao: o bot achou a transacao, nao conseguiu medir nada, e
+     * disse "voce nao tem cargo nenhum".
+     */
+    if (corpo.method === 'eth_call') {
+      if (mundo.medidasCairam) return json({}, 500)
+      return json({ result: '0x' + (3).toString(16).padStart(64, '0') })
+    }
     return json({ result: '0x0' })
   }
   return visto
@@ -176,6 +185,27 @@ conf(
   'nenhuma resposta do botão tem acento português',
 )
 conf(!/https?:\/\//.test(todas.join(' ')), 'e nenhuma manda o membro clicar em link')
+
+/* ==========================================================================
+ * NAO SABER NAO E "NAO TEM"
+ * ==========================================================================
+ * Aconteceu em producao: uma carteira com 76.533 $RONKE e 3 Ronkeverse recebeu
+ * "It does not hold enough for any role yet". As medidas tinham falhado, `merece`
+ * veio vazio, e o vazio foi lido como resposta em vez de como ignorancia.
+ *
+ * Lista vazia deixa quem escreve a mensagem afirmar sem perceber. Nulo obriga a
+ * decidir.
+ */
+console.log('\nNAO SABER NAO E "NAO TEM"\n')
+
+v = await roda({ pagamentos: [tx()], medidasCairam: true })
+conf(
+  !/does not hold enough/i.test(v.respostas[0]),
+  'pagamento achado mas saldo ilegivel NAO diz "voce nao tem nada"',
+  v.respostas[0]?.split('\n')[0],
+)
+conf(/could not read the chain/i.test(v.respostas[0]), 'diz que nao conseguiu LER')
+conf(/did not change any of your roles/i.test(v.respostas[0]), 'e que nao mexeu em nada')
 
 globalThis.fetch = original
 
