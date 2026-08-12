@@ -87,15 +87,56 @@ if (!servidor || !segredo) {
   const intervalo = Number(process.env.INTERVALO_S || 60) * 1000
   const ate = Date.now() + minutos * 60_000
 
+  /*
+   * UMA VOLTA QUE FALHA NÃO DERRUBA AS SEGUINTES.
+   *
+   * Isto aconteceu em produção: o RPC devolveu 429, a exceção subiu até aqui, e
+   * o processo morreu com uma pessoa ainda na fila. A execução seguinte só viria
+   * minutos depois — e o aviso de confirmação viaja num token de 15 minutos, então
+   * a demora não atrasa o aviso, ela o cancela.
+   *
+   * O `rpc()` agora tem paciência com 429, o que resolve a causa. Este laço trata
+   * o resto: qualquer falha vira uma linha no log e a próxima volta acontece. A
+   * varredura tem que ser o componente mais teimoso do sistema, porque é o único
+   * que alguém está esperando em tempo real.
+   */
+  let seguidas = 0
+
   do {
-    const r = await varreduraDePagamento({ servidor, regras, segredo })
+    let r
+    try {
+      r = await varreduraDePagamento({ servidor, regras, segredo })
+      seguidas = 0
+    } catch (e) {
+      seguidas++
+      const marca = new Date().toISOString().slice(11, 19)
+      console.error(`${marca}  FALHOU (${seguidas}x): ${String(e.message).slice(0, 120)}`)
+      /*
+       * Falhar sempre é diferente de falhar às vezes. Dez seguidas significa que
+       * não é uma piscada — é segredo errado, Redis fora, RPC bloqueado. Aí sim
+       * é melhor sair com erro, pra execução aparecer vermelha e alguém olhar,
+       * do que fingir que está vivo por cinquenta minutos.
+       */
+      if (seguidas >= 10) {
+        console.error('dez falhas seguidas — desistindo pra não fingir que está funcionando')
+        process.exitCode = 1
+        break
+      }
+      if (Date.now() >= ate) break
+      await new Promise((f) => setTimeout(f, intervalo))
+      continue
+    }
+
     const marca = new Date().toISOString().slice(11, 19)
     /*
      * Uma linha por volta, e só quando há o que dizer. Cinquenta linhas de
      * "nada aconteceu" escondem justamente a volta em que alguém verificou.
      */
     if (r.pendentes > 0 || r.verificados.length) {
-      console.log(`${marca}  esperando ${r.pendentes}  achados ${r.pagos ?? 0}`)
+      console.log(
+        `${marca}  esperando ${r.pendentes}  achados ${r.pagos ?? 0}` +
+          (r.pulou > 0 ? `  PULOU ${r.pulou} bloco(s) — a varredura esteve parada` : ''),
+      )
       for (const v of r.verificados) {
         console.log(
           `  VERIFICADO ${v.membro}  carteira ${v.carteira.slice(0, 10)}…` +
