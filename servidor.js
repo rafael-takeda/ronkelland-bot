@@ -83,9 +83,12 @@ const servidor = createServer((req, res) => {
     }
 
     try {
-      const { resposta, log } = await decide(dados, { segredo: SEGREDO })
+      const { resposta, depois, log } = await decide(dados, { segredo: SEGREDO })
       if (log) console.log(`[${new Date().toISOString()}]`, log.acao, log.membro, log.endereco ?? '')
       res.writeHead(200, { 'Content-Type': 'application/json' }).end(JSON.stringify(resposta))
+      // Depois da resposta ir: o Discord só aceita acompanhamento em interação
+      // já respondida. Falha aqui é log, não resposta — ela já saiu.
+      if (depois) await depois().catch((e) => console.error('[depois]', e))
     } catch (e) {
       /*
        * Erro interno vira resposta VÁLIDA, não 500. Interação sem resposta fica

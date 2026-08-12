@@ -23,7 +23,7 @@
  * primeira coisa que eles descartam — medido lá: pedindo de 5 em 5 minutos,
  * entregava uma por hora. Então cada execução FICA VIVA e faz o laço por dentro.
  */
-import { revarredura, varreduraDePagamento } from './lib/ciclo.js'
+import { limpaDesamarrados, revarredura, varreduraDePagamento } from './lib/ciclo.js'
 import { validaRegras } from './lib/regras.js'
 import { regrasEmUso } from './lib/painelrota.js'
 
@@ -75,6 +75,11 @@ if (!servidor || !segredo) {
   console.error('Falta DISCORD_GUILD_ID ou SEGREDO.')
   process.exitCode = 1
 } else if (process.argv.includes('--revarre')) {
+  // Antes de reavaliar quem tem vinculo, esvaziar a fila de quem PERDEU o
+  // vinculo — senao eles seguem com cargo que nao e mais deles.
+  const limpeza = await limpaDesamarrados({ servidor, regras })
+  if (limpeza.limpos) console.log(`desamarrados: ${limpeza.limpos} membro(s) revistos`)
+
   const r = await revarredura({ servidor, regras })
   console.log(`revarredura: ${r.conferidos} vínculo(s) conferido(s)`)
   for (const m of r.mudancas) {
@@ -105,6 +110,23 @@ if (!servidor || !segredo) {
   do {
     let r
     try {
+      /*
+       * A FILA DOS DESAMARRADOS VEM PRIMEIRO, e a cada volta.
+       *
+       * Entre alguem perder a carteira pra outro membro e perder o cargo existe
+       * uma janela — e essa janela e exatamente o tempo em que uma carteira so
+       * sustenta dois cargos. Quase sempre a fila esta vazia e isto custa uma
+       * chamada.
+       */
+      const limpeza = await limpaDesamarrados({ servidor, regras })
+      for (const m of limpeza.mudancas) {
+        console.log(
+          `  DESAMARRADO ${m.membro}  -${m.tirou ?? 0} cargo(s)` +
+            (m.saiu ? '  (saiu do servidor)' : '') +
+            (m.erro ? `  ERRO ${m.erro.slice(0, 60)}` : ''),
+        )
+      }
+
       r = await varreduraDePagamento({ servidor, regras, segredo })
       seguidas = 0
     } catch (e) {

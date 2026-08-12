@@ -44,9 +44,28 @@ conf(!pub.data.flags, 'a versão pública NÃO tem a marca — é o que a distin
  * endereço do João apareceria no canal e qualquer um poderia mandar a própria
  * transação pra lá.
  */
-const instrucao = respondeSo(msg.comoVerificar('0xabc123', 5))
-conf(instrucao.data.flags === EFEMERA, 'a instrução com o endereço vai individual')
-conf(instrucao.data.content.includes('0xabc123'), 'e carrega o endereço', 'sim')
+const ENDERECO = '0xa976ecb0272a977a34322c08fa0c49f5b1c1f735'
+const instrucao = respondeSo(msg.comoVerificar(ENDERECO, 10))
+conf(instrucao.data.flags === EFEMERA, 'a instrução vai individual')
+
+/*
+ * O ENDEREÇO SAI DA INSTRUÇÃO E VIRA MENSAGEM PRÓPRIA.
+ *
+ * Num bloco de código no meio de um texto longo, o celular não consegue copiar:
+ * o toque longo pega o parágrafo inteiro. Sozinho numa mensagem, o Discord móvel
+ * mostra o botão de copiar.
+ *
+ * As duas continuam efêmeras — o endereço da pessoa não pode aparecer no canal,
+ * senão um terceiro manda a transação dele pro endereço dela e sequestra a
+ * verificação.
+ */
+conf(!instrucao.data.content.includes(ENDERECO), 'a instrução NÃO carrega mais o endereço')
+conf(/next message/i.test(instrucao.data.content), 'ela aponta pra mensagem seguinte')
+
+const so = msg.soOEndereco(ENDERECO)
+conf(so.includes(ENDERECO), 'a segunda mensagem carrega o endereço')
+conf(so.startsWith('```') && so.trimEnd().endsWith('```'), 'num bloco de código, que é o que dá o botão de copiar')
+conf(so.replace(/```/g, '').trim() === ENDERECO, 'e NADA além dele — texto junto estraga a cópia', so.replace(/[`\n]/g, ''))
 
 // ------------------------------------------------- a mensagem fixa do canal
 const canal = mensagemDoCanal()

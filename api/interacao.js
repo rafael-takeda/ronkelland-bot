@@ -62,17 +62,46 @@ export default async function handler(req, res) {
     return res.status(400).send('json inválido')
   }
 
+  let depois = null
   try {
-    const { resposta, log } = await decide(dados, { segredo: process.env.SEGREDO })
-    if (log) console.log(log.acao, log.membro, log.endereco ?? '')
-    return res.status(200).json(resposta)
+    const decisao = await decide(dados, { segredo: process.env.SEGREDO })
+    if (decisao.log) console.log(decisao.log.acao, decisao.log.membro, decisao.log.endereco ?? '')
+    depois = decisao.depois
+    res.status(200).json(decisao.resposta)
   } catch (e) {
     // Erro vira resposta VALIDA: interacao sem resposta fica "pensando" pra
     // sempre na tela da pessoa.
     console.error('[erro]', e)
-    return res.status(200).json({
-      type: 4,
-      data: { content: 'Something went wrong on my side. Try again in a minute.', flags: 64 },
-    })
+    /*
+     * `headersSent` porque a resposta pode JA TER SAIDO. Sem esta guarda, uma
+     * falha depois do `json()` tentaria responder duas vezes e derrubaria a
+     * invocacao com ERR_HTTP_HEADERS_SENT -- trocando um erro pequeno por um
+     * erro grande.
+     */
+    if (!res.headersSent) {
+      res.status(200).json({
+        type: 4,
+        data: { content: 'Something went wrong on my side. Try again in a minute.', flags: 64 },
+      })
+    }
+    return
+  }
+
+  /*
+   * O TRABALHO DE DEPOIS, e ele fica FORA do try acima de proposito.
+   *
+   * O Discord so aceita mensagem de acompanhamento numa interacao ja respondida,
+   * entao isto nao pode acontecer antes do `json()`. E como a resposta ja foi,
+   * uma falha aqui nao pode mais virar resposta -- ela vira log e acabou.
+   *
+   * Hoje o unico uso e mandar o endereco numa mensagem propria, pra dar pra
+   * copiar no celular.
+   */
+  if (depois) {
+    try {
+      await depois()
+    } catch (e) {
+      console.error('[depois]', e)
+    }
   }
 }
