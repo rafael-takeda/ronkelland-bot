@@ -1,0 +1,8 @@
+{
+  "_leia": "Copie para regras.json e troque os IDs. IDs, nao nomes -- nome muda, id nao.",
+  "_comoPegarOId": "No Discord: Configuracoes do servidor -> Cargos -> clique no cargo -> ... -> Copiar ID. Precisa do Modo Desenvolvedor ligado (Configuracoes do usuario -> Avancado).",
+  "regras": [
+    { "cargo": "111111111111111111", "minimo": 1,  "nome": "Ronkeverse Holder" },
+    { "cargo": "222222222222222222", "minimo": 10, "nome": "Ronkeverse Whale" }
+  ]
+}

@@ -1,0 +1,78 @@
+# A varredura do RonkeLand.
+#
+# DUAS ROTINAS COM RITMOS DIFERENTES, e por isso dois jobs:
+#
+#   pagamento -- quem esta esperando AGORA. De minuto em minuto, senao a pessoa
+#                manda a transacao e fica olhando pro nada.
+#   revarre   -- tira o cargo de quem vendeu. Uma vez por dia basta.
+#
+# Cada execucao do pagamento FICA VIVA ~50 min fazendo o laco por dentro. E o
+# mesmo truque do bot de vendas: agendamento no Actions e melhor-esforco, e
+# frequencia alta e o primeiro descarte -- medido la, pedindo de 5 em 5 minutos
+# ele entregava uma por hora.
+name: verificacao do ronkeverse
+
+on:
+  schedule:
+    - cron: '*/15 * * * *'   # pagamento (a concorrencia enfileira)
+    - cron: '17 5 * * *'     # revarredura, 1x por dia
+  workflow_dispatch:
+
+concurrency:
+  group: ronkelland-varredura
+  cancel-in-progress: false
+
+jobs:
+  pagamento:
+    if: github.event.schedule != '17 5 * * *'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - run: node varre.js
+        timeout-minutes: 55
+        env:
+          MINUTOS: '50'
+          INTERVALO_S: '60'
+          DISCORD_TOKEN: ${{ secrets.DISCORD_TOKEN }}
+          DISCORD_GUILD_ID: ${{ secrets.DISCORD_GUILD_ID }}
+          SEGREDO: ${{ secrets.SEGREDO }}
+          UPSTASH_REDIS_REST_URL: ${{ secrets.UPSTASH_REDIS_REST_URL }}
+          UPSTASH_REDIS_REST_TOKEN: ${{ secrets.UPSTASH_REDIS_REST_TOKEN }}
+
+  revarre:
+    if: github.event.schedule == '17 5 * * *'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - run: node varre.js --revarre
+        env:
+          DISCORD_TOKEN: ${{ secrets.DISCORD_TOKEN }}
+          DISCORD_GUILD_ID: ${{ secrets.DISCORD_GUILD_ID }}
+          SEGREDO: ${{ secrets.SEGREDO }}
+          UPSTASH_REDIS_REST_URL: ${{ secrets.UPSTASH_REDIS_REST_URL }}
+          UPSTASH_REDIS_REST_TOKEN: ${{ secrets.UPSTASH_REDIS_REST_TOKEN }}
+
+  # Sem isto o agendamento morre calado em 60 dias -- o GitHub desativa workflow
+  # agendado em repositorio publico sem commit. So commit conta.
+  sinal:
+    if: github.event.schedule == '17 5 * * *'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - run: |
+          mes=$(date -u +%Y-%m)
+          if [ "$(cat .sinal 2>/dev/null)" != "$mes" ]; then
+            echo "$mes" > .sinal
+            git config user.name  "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add .sinal && git commit -m "sinal de vida $mes"
+            git push
+          fi

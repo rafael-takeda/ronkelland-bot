@@ -1,0 +1,757 @@
+{
+  "_leia": "Derivado dos metadados em 12/08/2026. Um token é 1/1 se tem algum valor de trait que aparece uma única vez na coleção.",
+  "total": 107,
+  "ids": [
+    14,
+    24,
+    43,
+    49,
+    60,
+    69,
+    87,
+    89,
+    147,
+    196,
+    210,
+    340,
+    388,
+    389,
+    420,
+    429,
+    440,
+    441,
+    473,
+    536,
+    586,
+    613,
+    666,
+    736,
+    777,
+    938,
+    977,
+    997,
+    1082,
+    1132,
+    1237,
+    1243,
+    1261,
+    1283,
+    1318,
+    1337,
+    1371,
+    1376,
+    1413,
+    1419,
+    1437,
+    1487,
+    1559,
+    1620,
+    1848,
+    1892,
+    1940,
+    1996,
+    2150,
+    2320,
+    2649,
+    2668,
+    2712,
+    2765,
+    3190,
+    3260,
+    3283,
+    3300,
+    3320,
+    3360,
+    3429,
+    3596,
+    3599,
+    3642,
+    3673,
+    3702,
+    3755,
+    3875,
+    3928,
+    3934,
+    3954,
+    3968,
+    3982,
+    4082,
+    4086,
+    4172,
+    4201,
+    4211,
+    4233,
+    4260,
+    4286,
+    4292,
+    4302,
+    4316,
+    4328,
+    4339,
+    4366,
+    4383,
+    4409,
+    4439,
+    4487,
+    4512,
+    4536,
+    4572,
+    4578,
+    4626,
+    4652,
+    4708,
+    4759,
+    4773,
+    4795,
+    5058,
+    5087,
+    5465,
+    5750,
+    5930,
+    6969
+  ],
+  "detalhe": [
+    {
+      "id": 14,
+      "traits": [
+        "Community 1/1: Bit Coco Ronke"
+      ]
+    },
+    {
+      "id": 24,
+      "traits": [
+        "Community 1/1: Ronke Potar"
+      ]
+    },
+    {
+      "id": 43,
+      "traits": [
+        "Community 1/1: Bit Baby Ronke"
+      ]
+    },
+    {
+      "id": 49,
+      "traits": [
+        "Community 1/1: Coco Ronke "
+      ]
+    },
+    {
+      "id": 60,
+      "traits": [
+        "Community 1/1: Bit Genkai"
+      ]
+    },
+    {
+      "id": 69,
+      "traits": [
+        "Community 1/1: Ariana Ronke"
+      ]
+    },
+    {
+      "id": 87,
+      "traits": [
+        "Community 1/1: Ronke Samurai"
+      ]
+    },
+    {
+      "id": 89,
+      "traits": [
+        "Community 1/1: Ronke Logo"
+      ]
+    },
+    {
+      "id": 147,
+      "traits": [
+        "Community 1/1: Ronkoku"
+      ]
+    },
+    {
+      "id": 196,
+      "traits": [
+        "Community 1/1: Ronke Mavis"
+      ]
+    },
+    {
+      "id": 210,
+      "traits": [
+        "Community 1/1: Ronke T"
+      ]
+    },
+    {
+      "id": 340,
+      "traits": [
+        "Community 1/1: Trafalgar Ronke"
+      ]
+    },
+    {
+      "id": 388,
+      "traits": [
+        "Community 1/1: Spider Ronke"
+      ]
+    },
+    {
+      "id": 389,
+      "traits": [
+        "Community 1/1: Ronkestar"
+      ]
+    },
+    {
+      "id": 420,
+      "traits": [
+        "Community 1/1: Bit RonkeKong #889"
+      ]
+    },
+    {
+      "id": 429,
+      "traits": [
+        "Community 1/1: Cagy Ronke"
+      ]
+    },
+    {
+      "id": 440,
+      "traits": [
+        "Community 1/1: Real Coco Ronke"
+      ]
+    },
+    {
+      "id": 441,
+      "traits": [
+        "Community 1/1: Ded Ronke"
+      ]
+    },
+    {
+      "id": 473,
+      "traits": [
+        "Community 1/1: Ronke Joker"
+      ]
+    },
+    {
+      "id": 536,
+      "traits": [
+        "Community 1/1: Ronkookoo"
+      ]
+    },
+    {
+      "id": 586,
+      "traits": [
+        "Community 1/1: Optimus Ronke"
+      ]
+    },
+    {
+      "id": 613,
+      "traits": [
+        "Community 1/1: Ronkeinsberg"
+      ]
+    },
+    {
+      "id": 666,
+      "traits": [
+        "Community 1/1: Ronke Wazowski"
+      ]
+    },
+    {
+      "id": 736,
+      "traits": [
+        "Community 1/1: Ronke Pacquiao"
+      ]
+    },
+    {
+      "id": 777,
+      "traits": [
+        "Community 1/1: Ronkeverine"
+      ]
+    },
+    {
+      "id": 938,
+      "traits": [
+        "Community 1/1: Ronke Hantao"
+      ]
+    },
+    {
+      "id": 977,
+      "traits": [
+        "Community 1/1: Ronke Virus"
+      ]
+    },
+    {
+      "id": 997,
+      "traits": [
+        "Community 1/1: ET Ronke"
+      ]
+    },
+    {
+      "id": 1082,
+      "traits": [
+        "Community 1/1: Bit Ronketard"
+      ]
+    },
+    {
+      "id": 1132,
+      "traits": [
+        "Community 1/1: Diamond Ronke"
+      ]
+    },
+    {
+      "id": 1237,
+      "traits": [
+        "Community 1/1: Ruan"
+      ]
+    },
+    {
+      "id": 1243,
+      "traits": [
+        "Community 1/1: Bini Ronke"
+      ]
+    },
+    {
+      "id": 1261,
+      "traits": [
+        "Community 1/1: Ronkemight"
+      ]
+    },
+    {
+      "id": 1283,
+      "traits": [
+        "Community 1/1: Ronke Goku"
+      ]
+    },
+    {
+      "id": 1318,
+      "traits": [
+        "Community 1/1: Max Ronke"
+      ]
+    },
+    {
+      "id": 1337,
+      "traits": [
+        "Community 1/1: Roncock"
+      ]
+    },
+    {
+      "id": 1371,
+      "traits": [
+        "Community 1/1: HELL GOD RONKE"
+      ]
+    },
+    {
+      "id": 1376,
+      "traits": [
+        "Community 1/1: Ronkin"
+      ]
+    },
+    {
+      "id": 1413,
+      "traits": [
+        "Community 1/1: Batronke"
+      ]
+    },
+    {
+      "id": 1419,
+      "traits": [
+        "Community 1/1: Bit Ronke Cool"
+      ]
+    },
+    {
+      "id": 1437,
+      "traits": [
+        "Community 1/1: 1437 Ronke"
+      ]
+    },
+    {
+      "id": 1487,
+      "traits": [
+        "Community 1/1: Jose Ronkezal"
+      ]
+    },
+    {
+      "id": 1559,
+      "traits": [
+        "Community 1/1: Rukia"
+      ]
+    },
+    {
+      "id": 1620,
+      "traits": [
+        "Community 1/1: Venom Ronke"
+      ]
+    },
+    {
+      "id": 1848,
+      "traits": [
+        "Community 1/1: Ronke The T"
+      ]
+    },
+    {
+      "id": 1892,
+      "traits": [
+        "Community 1/1: Bit Ronke Myoo"
+      ]
+    },
+    {
+      "id": 1940,
+      "traits": [
+        "Community 1/1: Real Real Coco Ronke"
+      ]
+    },
+    {
+      "id": 1996,
+      "traits": [
+        "Community 1/1: Hellscream Ronke"
+      ]
+    },
+    {
+      "id": 2150,
+      "traits": [
+        "Community 1/1: Ronke Bag"
+      ]
+    },
+    {
+      "id": 2320,
+      "traits": [
+        "Community 1/1: Worker Ronke"
+      ]
+    },
+    {
+      "id": 2649,
+      "traits": [
+        "Community 1/1: Pain Ronke"
+      ]
+    },
+    {
+      "id": 2668,
+      "traits": [
+        "Community 1/1: Bit Ronkegic"
+      ]
+    },
+    {
+      "id": 2712,
+      "traits": [
+        "Community 1/1: Dot Ronke"
+      ]
+    },
+    {
+      "id": 2765,
+      "traits": [
+        "Community 1/1: Nix Ronke"
+      ]
+    },
+    {
+      "id": 3190,
+      "traits": [
+        "Community 1/1: Ronke Ape"
+      ]
+    },
+    {
+      "id": 3260,
+      "traits": [
+        "Community 1/1: Ronke Swag"
+      ]
+    },
+    {
+      "id": 3283,
+      "traits": [
+        "Community 1/1: Ronke Leafy"
+      ]
+    },
+    {
+      "id": 3300,
+      "traits": [
+        "Community 1/1: Emo Ronke"
+      ]
+    },
+    {
+      "id": 3320,
+      "traits": [
+        "Community 1/1: Ronke Sanji"
+      ]
+    },
+    {
+      "id": 3360,
+      "traits": [
+        "Community 1/1: Gold Ronke"
+      ]
+    },
+    {
+      "id": 3429,
+      "traits": [
+        "Community 1/1: Bit Ronke"
+      ]
+    },
+    {
+      "id": 3596,
+      "traits": [
+        "Community 1/1: Ronke #4045"
+      ]
+    },
+    {
+      "id": 3599,
+      "traits": [
+        "Community 1/1: Bit Ronke Herny"
+      ]
+    },
+    {
+      "id": 3642,
+      "traits": [
+        "Community 1/1: Bit RonkeKong #868"
+      ]
+    },
+    {
+      "id": 3673,
+      "traits": [
+        "Community 1/1: Masa Ronke"
+      ]
+    },
+    {
+      "id": 3702,
+      "traits": [
+        "Community 1/1: Ronke Piece 5"
+      ]
+    },
+    {
+      "id": 3755,
+      "traits": [
+        "Community 1/1: Ronke Worried"
+      ]
+    },
+    {
+      "id": 3875,
+      "traits": [
+        "Community 1/1: Ronke Moku"
+      ]
+    },
+    {
+      "id": 3928,
+      "traits": [
+        "Community 1/1: Ronkillua"
+      ]
+    },
+    {
+      "id": 3934,
+      "traits": [
+        "Community 1/1: Ronke Fableborne"
+      ]
+    },
+    {
+      "id": 3954,
+      "traits": [
+        "Community 1/1: Ronke Chibi"
+      ]
+    },
+    {
+      "id": 3968,
+      "traits": [
+        "Community 1/1: Baronar Ronke"
+      ]
+    },
+    {
+      "id": 3982,
+      "traits": [
+        "Community 1/1: Rit Jujustu Ronke"
+      ]
+    },
+    {
+      "id": 4082,
+      "traits": [
+        "Community 1/1: Kiba ronke"
+      ]
+    },
+    {
+      "id": 4086,
+      "traits": [
+        "Community 1/1: Ronke Speedo"
+      ]
+    },
+    {
+      "id": 4172,
+      "traits": [
+        "Community 1/1: Ronketard"
+      ]
+    },
+    {
+      "id": 4201,
+      "traits": [
+        "Community 1/1: Rojo"
+      ]
+    },
+    {
+      "id": 4211,
+      "traits": [
+        "Community 1/1: Ronke Pos2"
+      ]
+    },
+    {
+      "id": 4233,
+      "traits": [
+        "Community 1/1: Okaronke"
+      ]
+    },
+    {
+      "id": 4260,
+      "traits": [
+        "Community 1/1: Ronke Kiss"
+      ]
+    },
+    {
+      "id": 4286,
+      "traits": [
+        "Community 1/1: Ronke Mingo"
+      ]
+    },
+    {
+      "id": 4292,
+      "traits": [
+        "Community 1/1: Ronke Epit"
+      ]
+    },
+    {
+      "id": 4302,
+      "traits": [
+        "Community 1/1: Ronkotaro"
+      ]
+    },
+    {
+      "id": 4316,
+      "traits": [
+        "Community 1/1: Ronke Demon Hunter"
+      ]
+    },
+    {
+      "id": 4328,
+      "traits": [
+        "Community 1/1: RONKIT"
+      ]
+    },
+    {
+      "id": 4339,
+      "traits": [
+        "Community 1/1: Ronke Ichigo"
+      ]
+    },
+    {
+      "id": 4366,
+      "traits": [
+        "Community 1/1: Captain Ronke"
+      ]
+    },
+    {
+      "id": 4383,
+      "traits": [
+        "Community 1/1: Ronke Darkside"
+      ]
+    },
+    {
+      "id": 4409,
+      "traits": [
+        "Community 1/1: Bit Ronke Cyclop"
+      ]
+    },
+    {
+      "id": 4439,
+      "traits": [
+        "Community 1/1: Aeon Ronke"
+      ]
+    },
+    {
+      "id": 4487,
+      "traits": [
+        "Community 1/1: RonkeMoku Gold"
+      ]
+    },
+    {
+      "id": 4512,
+      "traits": [
+        "Community 1/1: 1ogic Ronke"
+      ]
+    },
+    {
+      "id": 4536,
+      "traits": [
+        "Community 1/1: Ronke Trung"
+      ]
+    },
+    {
+      "id": 4572,
+      "traits": [
+        "Community 1/1: Ronke Soldier"
+      ]
+    },
+    {
+      "id": 4578,
+      "traits": [
+        "Community 1/1: Deep Indigo Ronke"
+      ]
+    },
+    {
+      "id": 4626,
+      "traits": [
+        "Community 1/1: Ronkai #14086"
+      ]
+    },
+    {
+      "id": 4652,
+      "traits": [
+        "Community 1/1: Moon Ronke"
+      ]
+    },
+    {
+      "id": 4708,
+      "traits": [
+        "Community 1/1: Ronkel Jackson"
+      ]
+    },
+    {
+      "id": 4759,
+      "traits": [
+        "Community 1/1: Clay Ronke"
+      ]
+    },
+    {
+      "id": 4773,
+      "traits": [
+        "Community 1/1: Edu Ronke"
+      ]
+    },
+    {
+      "id": 4795,
+      "traits": [
+        "Community 1/1: Bironke"
+      ]
+    },
+    {
+      "id": 5058,
+      "traits": [
+        "Community 1/1: Ronkuto Uzuchiha"
+      ]
+    },
+    {
+      "id": 5087,
+      "traits": [
+        "Community 1/1: Tama Ronke"
+      ]
+    },
+    {
+      "id": 5465,
+      "traits": [
+        "Community 1/1: Hamster Ronke"
+      ]
+    },
+    {
+      "id": 5750,
+      "traits": [
+        "Community 1/1: Ronke Monke"
+      ]
+    },
+    {
+      "id": 5930,
+      "traits": [
+        "Community 1/1: RonkeXBT"
+      ]
+    },
+    {
+      "id": 6969,
+      "traits": [
+        "Community 1/1: Chicken Ronke"
+      ]
+    }
+  ]
+}
