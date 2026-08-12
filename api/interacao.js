@@ -110,17 +110,7 @@ export default async function handler(req, res) {
   if (depois) {
     await agenda(async () => {
       const r = await depois()
-      /*
-       * Nem todo trabalho devolve algo: `conclui` responde por conta propria e
-       * nao retorna nada. Tratar "sem retorno" como falha produzia um log que
-       * gritava erro num caminho que tinha funcionado -- e log que mente custa
-       * mais caro que log que falta.
-       */
-      if (r && typeof r.ok === 'boolean') {
-        console.log('[depois]', r.ok ? 'entregue' : `falhou ${r.status ?? '?'}`)
-      } else {
-        console.log('[depois] concluido')
-      }
+      console.log('[depois]', r?.ok ? 'entregue' : `falhou ${r?.status ?? '?'}`)
     })
   }
 }
