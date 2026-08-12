@@ -62,12 +62,23 @@ export default async function handler(req, res) {
     return res.status(400).send('json inválido')
   }
 
-  let depois = null
+  /*
+   * ---------------------------------------------------------------------------
+   * DEPOIS DE RESPONDER, ESTA FUNCAO NAO TEM MAIS REDE
+   * ---------------------------------------------------------------------------
+   * Tentei mandar uma segunda mensagem apos o `json()` -- o Discord so aceita
+   * acompanhamento em interacao ja respondida, entao tinha que ser depois. A
+   * Vercel derruba a rede junto com a resposta: ECONNRESET contra discord.com
+   * antes do TLS fechar, e numa das tentativas nem o log de erro saiu.
+   *
+   * Ou seja: tudo que precisa ir pro Discord tem que caber NESTA resposta. Quem
+   * for acrescentar trabalho de fundo aqui vai perder a tarde descobrindo isso
+   * de novo.
+   */
   try {
-    const decisao = await decide(dados, { segredo: process.env.SEGREDO })
-    if (decisao.log) console.log(decisao.log.acao, decisao.log.membro, decisao.log.endereco ?? '')
-    depois = decisao.depois
-    res.status(200).json(decisao.resposta)
+    const { resposta, log } = await decide(dados, { segredo: process.env.SEGREDO })
+    if (log) console.log(log.acao, log.membro, log.endereco ?? '')
+    res.status(200).json(resposta)
   } catch (e) {
     // Erro vira resposta VALIDA: interacao sem resposta fica "pensando" pra
     // sempre na tela da pessoa.
@@ -83,25 +94,6 @@ export default async function handler(req, res) {
         type: 4,
         data: { content: 'Something went wrong on my side. Try again in a minute.', flags: 64 },
       })
-    }
-    return
-  }
-
-  /*
-   * O TRABALHO DE DEPOIS, e ele fica FORA do try acima de proposito.
-   *
-   * O Discord so aceita mensagem de acompanhamento numa interacao ja respondida,
-   * entao isto nao pode acontecer antes do `json()`. E como a resposta ja foi,
-   * uma falha aqui nao pode mais virar resposta -- ela vira log e acabou.
-   *
-   * Hoje o unico uso e mandar o endereco numa mensagem propria, pra dar pra
-   * copiar no celular.
-   */
-  if (depois) {
-    try {
-      await depois()
-    } catch (e) {
-      console.error('[depois]', e)
     }
   }
 }

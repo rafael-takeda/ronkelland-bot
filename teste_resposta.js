@@ -59,13 +59,25 @@ conf(instrucao.data.flags === EFEMERA, 'a instrução vai individual')
  * senão um terceiro manda a transação dele pro endereço dela e sequestra a
  * verificação.
  */
-conf(!instrucao.data.content.includes(ENDERECO), 'a instrução NÃO carrega mais o endereço')
-conf(/next message/i.test(instrucao.data.content), 'ela aponta pra mensagem seguinte')
+conf(instrucao.data.content.includes(ENDERECO), 'ela carrega o endereço')
 
-const so = msg.soOEndereco(ENDERECO)
-conf(so.includes(ENDERECO), 'a segunda mensagem carrega o endereço')
-conf(so.startsWith('```') && so.trimEnd().endsWith('```'), 'num bloco de código, que é o que dá o botão de copiar')
-conf(so.replace(/```/g, '').trim() === ENDERECO, 'e NADA além dele — texto junto estraga a cópia', so.replace(/[`\n]/g, ''))
+/*
+ * O ENDEREÇO NO TOPO, E SOZINHO NAS SUAS LINHAS.
+ *
+ * No meio do texto ele não se copia no celular: o toque longo pega o parágrafo
+ * inteiro. A ideia melhor — uma mensagem só pra ele, com o botão de copiar —
+ * não funciona neste host: acompanhamento exige interação já respondida, e a
+ * Vercel corta a rede da função junto com a resposta.
+ *
+ * Então o teste trava a posição: bloco de código próprio, e o mais alto
+ * possível, que é onde o polegar chega.
+ */
+const linhas = instrucao.data.content.split('\n')
+const iEndereco = linhas.findIndex((l) => l.trim() === ENDERECO)
+conf(iEndereco > 0, 'o endereço está sozinho na própria linha', `linha ${iEndereco}`)
+conf(linhas[iEndereco - 1].trim() === '```', 'dentro de um bloco de código')
+conf(linhas[iEndereco + 1].trim() === '```', 'que fecha logo depois dele, sem mais nada junto')
+conf(iEndereco <= 4, 'e no TOPO da mensagem, não enterrado no meio do texto', `linha ${iEndereco} de ${linhas.length}`)
 
 // ------------------------------------------------- a mensagem fixa do canal
 const canal = mensagemDoCanal()
