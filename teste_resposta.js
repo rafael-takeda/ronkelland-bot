@@ -94,6 +94,22 @@ conf(msg.soOEndereco(ENDERECO).includes(ENDERECO), 'a segunda carrega o endereç
 const semSegunda = msg.comoVerificar(ENDERECO, 10, null, false)
 conf(semSegunda.includes(ENDERECO), 'sem a segunda, o endereço fica na primeira — ninguém pode ficar sem ele')
 
+/*
+ * O PRAZO É CONTADO PELO DISCORD, e não escrito no texto.
+ *
+ * "You have 10 minutes" é verdade quando a mensagem sai e mentira quando a
+ * pessoa volta pra tela — e ela volta, porque no meio disso foi na carteira.
+ * `<t:unix:R>` o cliente atualiza sozinho, sem o bot editar nada.
+ */
+const ATE = Date.now() + 10 * 60_000
+const comPrazo = msg.comoVerificar(ENDERECO, 10, null, true, ATE)
+conf(comPrazo.includes(`<t:${Math.floor(ATE / 1000)}:R>`), 'o prazo vira carimbo relativo do Discord')
+conf(!/You have \*\*10 minutes\*\*/.test(comPrazo), 'e o número fixo some — ele envelhecia na tela')
+conf(
+  msg.comoVerificar(ENDERECO, 10, null, true).includes('10 minutes'),
+  'sem o instante, cai no texto antigo: prazo aproximado é melhor que nenhum',
+)
+
 // ------------------------------------------------- a mensagem fixa do canal
 const canal = mensagemDoCanal()
 conf(!canal.flags, 'a mensagem fixa do canal é pública — ela é pra todos')
