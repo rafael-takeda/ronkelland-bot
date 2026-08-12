@@ -116,8 +116,18 @@ for (const m of [primeira, denovo]) {
    * o bot estava quebrado. Os pagamentos reais que chegaram foram todos de
    * 0,00001 RON, contornando o texto por conta propria.
    */
-  conf(/0\.00001 RON/.test(m), 'a instrucao pede um valor MINIMO que a carteira aceita')
-  conf(/Zero does not/i.test(m), 'e avisa explicitamente que zero nao funciona')
+  conf(/any amount works/i.test(m), 'diz QUALQUER VALOR antes de dar numero')
+  conf(/0\.00001 RON/.test(m), 'e da um exemplo de valor pequeno que funciona')
+  /*
+   * A ORDEM IMPORTA e por isso e testada. Numero antes da regra faz quem le
+   * entender que aquele valor e exigido, e travar se a carteira arredondar
+   * diferente. A regra vem primeiro; o numero e exemplo.
+   */
+  conf(
+    m.toLowerCase().indexOf('any amount works') < m.indexOf('0.00001'),
+    'e a regra vem ANTES do numero, senao o exemplo vira exigencia',
+  )
+  conf(/zero does not/i.test(m), 'e avisa explicitamente que zero nao funciona')
   conf(!/\*\*Send 0 RON\.\*\*/.test(m), 'e NAO manda mandar zero, que e impossivel')
   conf(/destroyed/i.test(m), 'e avisa que o valor enviado e DESTRUIDO')
   conf(/not a donation/i.test(m), 'e que nao e doacao')

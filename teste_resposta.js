@@ -82,8 +82,9 @@ conf(/no owner/i.test(cru), 'avisa que o endereço não tem dono')
 conf(/destroyed/i.test(cru), 'e que o que for mandado é destruído')
 conf(/not a donation/i.test(cru), 'e que não é doação')
 // Zero nao pode voltar: a carteira da Ronin recusa transacao de valor zero.
-conf(/0\.00001 RON/.test(cru), 'pede um valor minimo que a carteira aceita, nao zero')
-conf(!/of \*\*0 RON\*\*/.test(cru), 'e nao manda mandar zero, que e impossivel')
+conf(/any amount works/i.test(cru), 'diz QUALQUER VALOR antes de dar numero')
+conf(/0\.00001 RON/.test(cru), 'e da um exemplo de valor pequeno')
+conf(!/of \*\*0 RON\*\*/.test(cru), 'e nao manda mandar zero, que a carteira recusa')
 
 console.log('\n  --- o que fica fixado no canal, visível a todos ---\n')
 console.log('  ' + canal.embeds[0].title)
