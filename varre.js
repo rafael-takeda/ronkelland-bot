@@ -134,7 +134,9 @@ if (!servidor || !segredo) {
      */
     if (r.pendentes > 0 || r.verificados.length) {
       console.log(
-        `${marca}  esperando ${r.pendentes}  achados ${r.pagos ?? 0}` +
+        `${marca}  esperando ${r.pendentes}  achados ${r.pagos ?? 0}  via ${r.fonte ?? '?'}` +
+          // "via blocos" significa que o explorer falhou e a reserva entrou. Não
+          // é fatal, mas ali a varredura volta a ser míope: só enxerga a janela.
           (r.pulou > 0 ? `  PULOU ${r.pulou} bloco(s) — a varredura esteve parada` : ''),
       )
       for (const v of r.verificados) {
