@@ -1,8 +1,8 @@
 {
-  "_leia": "IDs de cargo lidos do Ronke Guild em 12/08/2026. Contratos confirmados na cadeia.",
+  "_leia": "IDs de cargo lidos do Ronke Guild em 12/08/2026. Contratos confirmados na cadeia. O campo 'nome' e so rotulo: ele copia o nome do cargo no Discord pra que o painel mostre o mesmo texto que o admin ve na lista de cargos -- quem decide e sempre o 'cargo' (o ID).",
   "regras": [
     {
-      "nome": "Ronke Holder",
+      "nome": "$RONKE holder",
       "cargo": "1350620589613776976",
       "contrato": "0xf988F63Bf26c3Ed3fBf39922149E3E7B1e5c27Cb",
       "tipo": "ERC-20",
@@ -11,7 +11,7 @@
       "rotulo": "$RONKE"
     },
     {
-      "nome": "Ronke Chad",
+      "nome": "$RONKE chad",
       "cargo": "1350620680286240769",
       "contrato": "0xf988F63Bf26c3Ed3fBf39922149E3E7B1e5c27Cb",
       "tipo": "ERC-20",
