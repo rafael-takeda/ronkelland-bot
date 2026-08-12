@@ -11,15 +11,20 @@ import {
   escolheCanal,
   escolheCargo,
   escolheParaRemover,
+  escolheTipo,
   janelinhaDeRegra,
+  janelinhaDeScore,
   jaExiste,
+  montaRegra,
   podeUsarCargo,
   tela,
   telaDoHistorico,
+  telaDoScore,
   COMP,
   RESP,
 } from './lib/painel.js'
 import { ehDoPainel } from './lib/painel.js'
+import { validaRegras } from './lib/regras.js'
 
 let falhas = 0
 const conf = (c, m, e = '') => {
@@ -93,6 +98,45 @@ conf(
  */
 const muitas = Array.from({ length: 40 }, (_, i) => ({ nome: `R${i}`, cargo: '1', tipo: 'score', minimo: i + 1 }))
 conf(escolheParaRemover(muitas).components[0].components[0].options.length === 25, '40 regras viram 25 opções, o teto do Discord')
+
+/* ------------------------------------------------------ o caminho do score */
+console.log('\nA REGRA DE SCORE\n')
+
+const et = escolheTipo()
+const tipos = et.components[0].components[0].options.map((o) => o.value)
+conf(tipos.join() === 'contrato,score', 'dá pra escolher entre contrato e score', tipos.join(', '))
+
+const js = janelinhaDeScore()
+const camposScore = js.data.components.flatMap((l) => l.components).map((c) => c.custom_id)
+conf(camposScore.join() === 'minimo', 'a janelinha do score pede UM campo só — score não tem contrato', camposScore.join())
+
+const comRegua = telaDoScore([
+  { rank: 10, score: 4345 },
+  { rank: 500, score: 1213 },
+])
+conf(comRegua.embeds[0].description.includes('4345'), 'a régua mostra o score de cada faixa')
+conf(comRegua.embeds[0].description.includes('top 500'), 'e diz a que posição ela corresponde')
+conf(
+  comRegua.embeds[0].description.includes('07:00 UTC'),
+  'avisa que o score é do dia anterior — senão o admin promete "na hora" pra comunidade',
+)
+conf(
+  telaDoScore([]).embeds[0].description.includes('Could not read'),
+  'ranking fora do ar não trava o cadastro, só avisa',
+)
+
+/*
+ * MONTAR REGRA DE SCORE NÃO TOCA A REDE. Se tocasse, este teste falharia sem
+ * internet — e mais importante: gastaria 0,5 s dos 3 segundos por nada, já que
+ * não há contrato nenhum pra descrever.
+ */
+// ID de verdade tem 17-20 digitos. Um curto seria recusado pelo validaRegras --
+// e recusar e o certo, entao o teste tem que usar um plausivel.
+const doScore = await montaRegra({ tipo: 'score', minimo: 1200 }, { id: '444444444444444444', name: 'Ronke Sage' })
+conf(doScore.ok, 'monta a regra de score')
+conf(doScore.regra.tipo === 'score' && doScore.regra.minimo === 1200, 'com o tipo e o corte certos')
+conf(!('contrato' in doScore.regra), 'e SEM contrato — o validaRegras recusaria se tivesse')
+conf(validaRegras([doScore.regra]).length === 0, 'a regra que o painel monta passa na validação')
 
 conf(telaDoHistorico([]).embeds[0].description.includes('Nothing changed'), 'histórico vazio diz que está vazio')
 const h = telaDoHistorico([{ quando: 1786500000000, quem: '999', acao: 'added', detalhe: 'Ronke Sage' }])
