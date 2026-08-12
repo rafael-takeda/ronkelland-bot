@@ -6,7 +6,7 @@
   "description": "Prova de posse de NFT na Ronin SEM conectar carteira.",
   "scripts": {
     "teste": "node teste.js",
-    "teste:tudo": "node teste.js && node teste_regras.js && node teste_seguranca.js && node teste_comandos.js && node teste_resposta.js && node teste_assinatura.js && node teste_ciclo.js && node teste_score.js",
+    "teste:tudo": "node teste.js && node teste_regras.js && node teste_seguranca.js && node teste_comandos.js && node teste_resposta.js && node teste_assinatura.js && node teste_ciclo.js && node teste_score.js && node teste_painel.js",
     "servidor": "node --env-file=.env servidor.js",
     "acha1de1": "node acha1de1.js"
   },
