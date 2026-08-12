@@ -48,6 +48,7 @@ for (const [c, oQue] of ruins) conf(validaComandos([c]).length > 0, `recusa ${oQ
 console.log('\n  --- o que aparece pro membro (ingles) ---\n')
 const amostra = [
   msg.comoVerificar('0xa976ecb0272a977a34322c08fa0c49f5b1c1f735', 30),
+  msg.comoVerificar('0xa976ecb0272a977a34322c08fa0c49f5b1c1f735', 5, '0xc24566e78709ce989db5211bb088ead4dce81b74'),
   msg.verificado('0xc24566e78709ce989db5211bb088ead4dce81b74', ['1350620589613776976']),
   msg.verificado('0xc24566e78709ce989db5211bb088ead4dce81b74', []),
   msg.semNft,
@@ -69,6 +70,30 @@ const tudo = Object.values(msg)
 conf(!/[áàâãéêíóôõúçÁÀÂÃÉÊÍÓÔÕÚÇ]/.test(tudo), 'nenhuma mensagem do usuario tem acento portugues')
 conf(!/\bhttps?:\/\//.test(tudo), 'nenhuma mensagem manda o membro clicar em link')
 conf(/never ask you to connect a wallet/i.test(tudo), 'a instrucao diz explicitamente que nunca pedimos conexao')
+
+/*
+ * QUEM JA VERIFICOU PRECISA LER UMA ACAO, NAO UM ESTADO.
+ *
+ * A versao anterior colava "You are currently verified with 0x..." no rodape da
+ * instrucao. A instrucao estava completa e correta, e mesmo assim quem leu
+ * entendeu "ja era" e parou -- estado no fim de um texto parece conclusao.
+ *
+ * Estes testes cravam a diferenca: com carteira amarrada o titulo muda, e o
+ * texto diz o que cada escolha faz.
+ */
+const primeira = msg.comoVerificar('0xa976ecb0272a977a34322c08fa0c49f5b1c1f735', 5)
+const denovo = msg.comoVerificar('0xa976ecb0272a977a34322c08fa0c49f5b1c1f735', 5, '0xc24566e78709ce989db5211bb088ead4dce81b74')
+
+conf(primeira.startsWith('**Verify'), 'quem nunca verificou le "Verify"')
+conf(denovo.startsWith('**Re-check'), 'quem ja verificou le "Re-check" -- e nao a mesma tela com um aviso no fim')
+conf(denovo.includes('0xc245') && denovo.includes('1b74'), 'diz qual carteira esta amarrada hoje')
+conf(/same wallet/i.test(denovo), 'explica o que a MESMA carteira faz')
+conf(/different wallet/i.test(denovo), 'e o que uma carteira DIFERENTE faz')
+conf(denovo.includes('0 RON'), 'e continua sendo a mesma transacao de 0 RON')
+conf(
+  !/currently verified/i.test(denovo),
+  'nao usa mais a frase que soava como "ja era, nao tem o que fazer"',
+)
 
 console.log(falhas ? `\n${falhas} FALHA(S)\n` : '\nTUDO OK\n')
 process.exitCode = falhas ? 1 : 0
