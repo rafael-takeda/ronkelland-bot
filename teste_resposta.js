@@ -89,7 +89,19 @@ conf(iEndereco <= 4, 'e no TOPO da mensagem, não enterrado no meio do texto', `
 const comSegunda = msg.comoVerificar(ENDERECO, 10, null, true)
 conf(!comSegunda.includes(ENDERECO), 'com a segunda mensagem garantida, o endereço NÃO se repete na primeira')
 conf(/address \*\*below\*\*/i.test(comSegunda), 'e ela aponta pra baixo')
-conf(msg.soOEndereco(ENDERECO).includes(ENDERECO), 'a segunda carrega o endereço')
+/*
+ * A SEGUNDA MENSAGEM E O ENDERECO PELADO, sem uma crase sequer.
+ *
+ * Ela era um bloco de codigo. Quem seleciona a mao leva as crases junto, cola
+ * `0xabc…` com acento grave nas pontas, e a carteira recusa sem dizer por que.
+ * Foi relatado por um membro.
+ *
+ * O teste compara com IGUALDADE, e nao com `includes`: qualquer coisa a mais na
+ * mensagem pode acabar dentro do que a pessoa cola.
+ */
+const soEnd = msg.soOEndereco(ENDERECO)
+conf(soEnd === ENDERECO, 'a segunda mensagem e SO o endereco, sem formatacao', JSON.stringify(soEnd))
+conf(!/[`*_~|]/.test(soEnd), 'sem crase, negrito ou qualquer marcacao que possa vir colada junto')
 
 const semSegunda = msg.comoVerificar(ENDERECO, 10, null, false)
 conf(semSegunda.includes(ENDERECO), 'sem a segunda, o endereço fica na primeira — ninguém pode ficar sem ele')
