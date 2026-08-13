@@ -12,8 +12,10 @@ import {
   escolheCargo,
   escolheParaRemover,
   escolheTipo,
+  janelinhaDeRank,
   janelinhaDeRegra,
   janelinhaDeScore,
+  telaDoRank,
   jaExiste,
   montaRegra,
   podeUsarCargo,
@@ -104,7 +106,32 @@ console.log('\nA REGRA DE SCORE\n')
 
 const et = escolheTipo()
 const tipos = et.components[0].components[0].options.map((o) => o.value)
-conf(tipos.join() === 'contrato,score', 'dá pra escolher entre contrato e score', tipos.join(', '))
+conf(tipos.join() === 'contrato,score,rank', 'dá pra escolher entre contrato, score e rank', tipos.join(', '))
+
+/*
+ * SCORE E RANK SAO A MESMA FONTE E PERGUNTAS DIFERENTES, e a lista tem que
+ * deixar isso claro em uma linha — senao o admin escolhe no chute.
+ */
+const desc = Object.fromEntries(et.components[0].components[0].options.map((o) => [o.value, o.description]))
+conf(/drift/i.test(desc.rank), 'a opção de rank explica que ela NÃO envelhece', desc.rank)
+
+const jr = janelinhaDeRank()
+conf(
+  jr.data.components[0].components[0].custom_id === 'minimo',
+  'a janelinha do rank pede um campo só',
+)
+conf(/seats/i.test(jr.data.title + jr.data.components[0].components[0].label), 'e fala em CADEIRAS, não em pontos')
+
+const reguaRank = telaDoRank([
+  { rank: 10, score: 4345 },
+  { rank: 500, score: 1213 },
+])
+// `top\s+10` e nao `top 10`: as posicoes sao alinhadas a direita, entao ha
+// espacos entre a palavra e o numero. Cravar o espaco unico seria um teste que
+// quebra quando alguem mexe no alinhamento, sem nada ter piorado.
+conf(/top\s+10\b/.test(reguaRank.embeds[0].description), 'a régua do rank mostra a posição primeiro')
+conf(reguaRank.embeds[0].description.includes('4,345'), 'e quanto ela custa em pontos hoje')
+conf(/does not drift/i.test(reguaRank.embeds[0].description), 'e diz por que isso importa')
 
 const js = janelinhaDeScore()
 const camposScore = js.data.components.flatMap((l) => l.components).map((c) => c.custom_id)

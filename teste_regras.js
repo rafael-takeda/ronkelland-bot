@@ -6,7 +6,7 @@
  * Aqui nao ha cadeia nem Discord: e logica pura, e por isso mesmo e onde um erro
  * passa despercebido ate alguem perder um cargo que nao devia perder.
  */
-import { cargosPara, chaveDaMedida, decideCargos, validaRegras } from './lib/regras.js'
+import { cargosPara, chaveDaMedida, decideCargos, minimoDaRegra, validaRegras } from './lib/regras.js'
 import { readFileSync } from 'node:fs'
 
 let falhas = 0
@@ -92,6 +92,46 @@ conf(validaRegras([{ ...SCORE, minimo: 0 }]).length > 0, 'score com corte zero e
 conf(validaRegras([{ cargo: SABIO, tipo: 'ERC-1155', contrato: NFT, minimo: 1 }]).length > 0, 'tipo desconhecido e recusado')
 conf(validaRegras([SCORE, { ...SCORE, minimo: 5000 }]).length > 0, 'duas regras de score no MESMO cargo e repeticao')
 conf(validaRegras([SCORE, { ...SCORE, cargo: LORD, minimo: 5000 }]).length === 0, 'duas faixas de score em cargos diferentes e legitimo')
+
+/* -------------------------------------------------------------- por posicao */
+const TOP = '555555555555555555'
+const RANK = { cargo: TOP, tipo: 'rank', minimo: 69, nome: 'Top 69' }
+
+conf(validaRegras([RANK]).length === 0, 'regra de rank passa SEM contrato')
+conf(validaRegras([{ ...RANK, contrato: NFT }]).length > 0, 'rank COM contrato e recusado')
+conf(validaRegras([{ ...RANK, minimo: 0 }]).length > 0, 'top 0 e recusado')
+conf(validaRegras([{ ...RANK, minimo: 1.5 }]).length > 0, 'posicao fracionada e recusada')
+
+/*
+ * DUAS FAIXAS NAO PODEM COMPARTILHAR MEDIDA. Top 69 e top 500 sao perguntas
+ * diferentes; se dividissem a chave, a segunda herdaria o veredito da primeira e
+ * daria o cargo de 500 so pra quem esta em 69.
+ */
+conf(
+  chaveDaMedida(RANK) !== chaveDaMedida({ ...RANK, minimo: 500 }),
+  'top 69 e top 500 tem chaves diferentes',
+  `${chaveDaMedida(RANK)} vs ${chaveDaMedida({ ...RANK, minimo: 500 })}`,
+)
+
+/*
+ * ================================================================
+ * A ARMADILHA DA INVERSAO — e o motivo de a medida ser 0/1
+ * ================================================================
+ * Rank e invertido: 10 e melhor que 500. A comparacao deste arquivo e uma so,
+ * `medida >= corte`, e a tentacao e guardar o rank e inverter pra `<=`.
+ *
+ * Nao da: `medidas[chave] ?? 0` faz carteira SEM medida virar zero, e
+ * `0 <= 69` e verdadeiro. Todo mundo que nunca pontuou ganharia o cargo mais
+ * exclusivo do servidor — e o teste passaria, porque quem tem rank bom tambem
+ * passa.
+ *
+ * Com medida 0/1 o ausente continua sendo o nao. Estes testes travam isso.
+ */
+const chaveRank = chaveDaMedida(RANK)
+conf(cargosPara({ [chaveRank]: 1 }, [RANK]).includes(TOP), 'dentro do top: recebe')
+conf(!cargosPara({ [chaveRank]: 0 }, [RANK]).includes(TOP), 'fora do top: nao recebe')
+conf(!cargosPara({}, [RANK]).includes(TOP), 'MEDIDA AUSENTE NAO RECEBE — a armadilha da inversao')
+conf(minimoDaRegra(RANK) === 1, 'o corte de uma regra de rank e sempre 1, nunca o N', String(minimoDaRegra(RANK)))
 
 /*
  * A REGRESSAO DO RONKE LORD.

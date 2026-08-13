@@ -217,6 +217,63 @@ conf(
 )
 
 /* ==========================================================================
+ * A MEDIDA DE RANK — 0 ou 1, nunca a posição
+ * ==========================================================================
+ * Rank é invertido: 10 é melhor que 500. Se a medida fosse a posição, a
+ * comparação teria que ser `<=` — e `medidas[chave] ?? 0` faria carteira SEM
+ * rank virar zero, que passa em qualquer top N.
+ */
+console.log('\nA MEDIDA DE RANK\n')
+
+const TOP69 = '666666666666666666'
+const REGRA_RANK = [{ nome: 'Top 69', cargo: TOP69, tipo: 'rank', minimo: 69 }]
+const CHAVE_RANK = 'rank:69'
+
+function redeComRank(resposta) {
+  globalThis.fetch = async (url) => {
+    if (!String(url).includes('ronke-analytics')) throw new Error('só o score devia ser consultado')
+    return new Response(JSON.stringify(resposta), {
+      status: resposta === null ? 500 : 200,
+      headers: { 'Content-Type': 'application/json' },
+    })
+  }
+}
+
+const comRank = (rank) => ({ data: { address: CARTEIRA, found: rank !== null, score: 100, rank }, meta: {} })
+
+for (const [rank, esperado, oQue] of [
+  [1, 1, 'rank 1 entra no top 69'],
+  [69, 1, 'rank exatamente no corte entra (é <=, não <)'],
+  [70, 0, 'rank 70 fica de fora por um'],
+  [5000, 0, 'rank ruim fica de fora'],
+]) {
+  esqueceTudo()
+  redeComRank(comRank(rank))
+  const r = await medidasDe(CARTEIRA, REGRA_RANK)
+  conf(r.medidas[CHAVE_RANK] === esperado, oQue, `medida ${r.medidas[CHAVE_RANK]}`)
+}
+
+/*
+ * `rank: null` É A CARTEIRA QUE NÃO PONTUA. A API devolve nulo de propósito —
+ * "sem classificação" e "em último lugar" são fatos diferentes. Aqui os dois dão
+ * no mesmo, mas o que NÃO pode acontecer é o nulo virar um número pequeno.
+ */
+esqueceTudo()
+redeComRank(comRank(null))
+let mr = await medidasDe(CARTEIRA, REGRA_RANK)
+conf(mr.medidas[CHAVE_RANK] === 0, 'carteira sem rank mede ZERO, e não entra no top')
+conf(!cargosPara(mr.medidas, REGRA_RANK).includes(TOP69), 'e não recebe o cargo — a armadilha da inversão')
+
+// API fora do ar continua sendo "não sei": nem concede, nem remove.
+esqueceTudo()
+redeComRank(null)
+mr = await medidasDe(CARTEIRA, REGRA_RANK)
+conf(!(CHAVE_RANK in mr.medidas), 'API fora do ar: a medida fica AUSENTE')
+conf(mr.incerto.includes(CHAVE_RANK), 'e entra nos incertos, que impedem a remoção')
+
+globalThis.fetch = original
+
+/* ==========================================================================
  * O MAPA DOS 1/1 — a trava que decide se ele pode conceder
  * ==========================================================================
  * Os 107 `ownerOf` custam 45 segundos medidos e estouram sozinhos o teto de 100
