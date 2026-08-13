@@ -50,7 +50,19 @@ console.log('\nO PAINEL: COMO A TELA FICA\n')
 const t = tela(REGRAS)
 const texto = t.embeds[0].description
 conf(t.flags === 64, 'o painel é efêmero — só o admin que abriu enxerga')
-conf(REGRAS.every((r) => texto.includes(r.nome)), 'todas as regras aparecem na tela')
+
+/*
+ * O CARGO É MENCIONADO, NÃO ESCRITO.
+ *
+ * `r.nome` é o nome do dia do cadastro. Quem renomeasse o cargo no Discord via o
+ * painel repetir o nome antigo pra sempre — aconteceu, e o admin concluiu que a
+ * regra apontava pro cargo errado. `<@&id>` o Discord resolve na hora de exibir.
+ */
+conf(REGRAS.every((r) => texto.includes(`<@&${r.cargo}>`)), 'cada regra menciona o cargo pelo ID')
+conf(
+  !REGRAS.some((r) => texto.includes(`**${r.nome}**`)),
+  'e NÃO imprime o nome guardado, que envelhece',
+)
 conf(texto.includes('1,000') === false && texto.includes('10+'), 'quantidade legível', descreveRegra(REGRAS[1]))
 conf(descreveRegra(REGRAS[0]) === '1+ $RONKE', 'usa o símbolo do token quando a cadeia deu um', descreveRegra(REGRAS[0]))
 conf(descreveRegra(REGRAS[2]) === 'any of 3 specific tokens', 'posse-de-id diz QUANTOS tokens, não "mínimo 3"', descreveRegra(REGRAS[2]))
@@ -89,6 +101,22 @@ conf(
 
 const er = escolheParaRemover(REGRAS)
 conf(er.components[0].components[0].options.length === 4, 'a remoção lista as 4 regras')
+
+/*
+ * NOME VELHO NUMA LISTA DE REMOÇÃO é o pior lugar pra ele estar: a pessoa apaga
+ * achando que é outro cargo. Aqui não dá pra mencionar (rótulo de opção é texto
+ * puro), então o nome atual vem de uma chamada ao servidor.
+ */
+const RENOMEADO = escolheParaRemover(REGRAS, { [REGRAS[0].cargo]: 'Ronke OG' })
+conf(
+  RENOMEADO.components[0].components[0].options[0].label === 'Ronke OG',
+  'com o mapa do servidor, usa o nome de AGORA',
+  RENOMEADO.components[0].components[0].options[0].label,
+)
+conf(
+  escolheParaRemover(REGRAS, null).components[0].components[0].options[0].label === REGRAS[0].nome,
+  'sem o mapa (servidor não respondeu), cai no nome guardado em vez de ficar vazio',
+)
 conf(
   er.components[0].components[0].options.every((o) => o.label && o.description),
   'cada uma com nome e o que ela exige',
