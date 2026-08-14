@@ -88,9 +88,73 @@ conf(
   'só campos de texto — o Discord não aceita lista de cargo dentro de janelinha',
 )
 
-const ec = escolheCargo('teste')
-conf(ec.components[0].components[0].type === COMP.LISTA_CARGO, 'o cargo vem de uma LISTA, ninguém cola ID')
+/*
+ * A LISTA DE CARGOS — o que ela mostra, e principalmente o que ela ESCONDE.
+ *
+ * O caso real: na Ronke Guild, 8 dos 20 cargos não podem ser dados por este bot.
+ * O seletor nativo do Discord mostrava os 20, e a recusa só chegava depois do
+ * clique. Estes testes travam a lista curada no lugar.
+ */
+const CARGOS = [
+  { id: '1', name: '@everyone', position: 0, permissions: '0' },
+  { id: '2', name: 'Admin Perms Role', position: 20, permissions: String(1n << 3n) }, // acima E perigoso
+  { id: '3', name: 'Moderator', position: 17, permissions: String(1n << 13n) },
+  { id: '4', name: 'RonkeLand', position: 16, permissions: '0', managed: true },
+  { id: '5', name: 'Ronke Lord', position: 15, permissions: '0' },
+  { id: '6', name: 'Ronke Club', position: 14, permissions: '0' },
+  { id: '7', name: 'Ronke', position: 6, permissions: '0' },
+  { id: '8', name: 'Dyno', position: 2, permissions: '0', managed: true },
+]
+
+const ec = escolheCargo('teste', CARGOS, 16)
+const lista = ec.components[0].components[0]
+conf(lista.type === COMP.LISTA, 'o cargo vem de uma LISTA, ninguém cola ID')
 conf(ec.flags === 64, 'e a escolha do cargo também é só do admin')
+conf(
+  lista.options.map((o) => o.label).join() === 'Ronke Lord,Ronke Club,Ronke',
+  'só os cargos que o bot CONSEGUE dar, do mais alto pro mais baixo',
+  lista.options.map((o) => o.label).join(),
+)
+conf(
+  !lista.options.some((o) => ['Admin Perms Role', 'Moderator', 'Dyno', 'RonkeLand'].includes(o.label)),
+  'nada de oferecer cargo que vai ser recusado depois do clique',
+)
+conf(lista.options.every((o) => /^\d+$/.test(o.value)), 'o valor da opção é o id do cargo')
+conf(
+  /4 roles are not listed/.test(ec.embeds[0].description),
+  'e diz quantos ficaram de fora — corte silencioso vira caça ao tesouro',
+  ec.embeds[0].description,
+)
+/*
+ * "Arraste meu cargo pra cima" só aparece pra quem esse conselho RESOLVE.
+ *
+ * Os dois cargos acima do bot lá em cima também têm permissão de moderação:
+ * arrastar não os liberaria, e mandar arrastar seria mandar a pessoa mexer na
+ * hierarquia do servidor à toa. Aqui entra um que peca só pela altura.
+ */
+const soAlto = escolheCargo('t', [...CARGOS, { id: '9', name: 'VIP', position: 18, permissions: '0' }], 16)
+conf(/1 sits above my role/.test(soAlto.embeds[0].description), 'conta o que está só acima do bot', soAlto.embeds[0].description)
+conf(/drag mine up/.test(soAlto.embeds[0].description), 'com o conserto que o admin consegue fazer')
+conf(
+  !/drag mine up/.test(ec.embeds[0].description),
+  'e NÃO manda arrastar quando arrastar não resolveria — os de cima também são perigosos',
+  ec.embeds[0].description,
+)
+
+// @everyone tem posição 0: nunca pode entrar na lista, nem como "de fora"
+conf(!escolheCargo('t', CARGOS, 16).embeds[0].description.includes('5 roles'), '@everyone não conta como cargo escondido')
+
+// Sem cargos (a chamada falhou), volta pro nativo em vez de travar o admin
+const semLista = escolheCargo('teste', null)
+conf(
+  semLista.components[0].components[0].type === COMP.LISTA_CARGO,
+  'sem a lista do servidor, cai no seletor nativo — lista pior, melhor que nenhuma',
+)
+
+// Nenhum cargo alcançável: lista vazia é erro duro no Discord
+const nada = escolheCargo('teste', [CARGOS[0], CARGOS[1]], 16)
+conf(!nada.components.some((l) => l.components.some((c) => c.type === COMP.LISTA)), 'sem cargo alcançável, não manda lista vazia')
+conf(/drag my role/.test(nada.embeds[0].description), 'e explica como destravar')
 
 const ecanal = escolheCanal()
 conf(ecanal.components[0].components[0].type === COMP.LISTA_CANAL, 'o canal também vem de lista')
