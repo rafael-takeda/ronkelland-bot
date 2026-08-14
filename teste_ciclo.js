@@ -9,7 +9,7 @@
  * o membro nem entende.
  */
 import { cargosPara, decideCargos } from './lib/regras.js'
-import { medidasDe } from './lib/ciclo.js'
+import { impressaoDosIds, medidasDe } from './lib/ciclo.js'
 import { esqueceTudo } from './lib/score.js'
 import { avisaDepois } from './lib/discord.js'
 import { msg } from './lib/mensagens.js'
@@ -291,9 +291,24 @@ const mapaCom = (extra = {}) => ({
   contrato: NFT,
   completo: true,
   quando: AGORA_MAPA,
+  impressao: impressaoDosIds(UM_DE_UM),
   donos: { [CARTEIRA]: [24] },
   ...extra,
 })
+
+/*
+ * A IMPRESSÃO NÃO PODE DEPENDER DA ORDEM. A lista vem de arquivo, de Redis e do
+ * painel, e nenhum desses garante ordem — se reordenar mudasse a impressão, a
+ * foto seria descartada e refeita à toa a cada volta.
+ */
+conf(
+  impressaoDosIds([3, 1, 2]) === impressaoDosIds([1, 2, 3]),
+  'a impressão da lista não muda com a ordem',
+)
+conf(
+  impressaoDosIds([1, 2, 3]) !== impressaoDosIds([1, 2, 3, 4]),
+  'mas muda quando entra um id — é isso que invalida a foto velha',
+)
 
 esqueceTudo()
 conta = montaRede({ token: 0, nfts: 9, score: 0, tem1de1: [24] })
@@ -325,6 +340,13 @@ for (const [rotulo, mapa] of [
   ['foto incompleta', mapaCom({ completo: false })],
   ['foto velha', mapaCom({ quando: AGORA_MAPA - 4 * 60 * 60 * 1000 })],
   ['foto de outro contrato', mapaCom({ contrato: '0x9999999999999999999999999999999999999999' })],
+  /*
+   * O CASO REAL, de 14/08/2026: os 1/1 passaram de 107 pra 159 e a foto velha
+   * continuou valendo. Ela respondia ZERO pros 52 novos donos — negando o cargo
+   * sem que nada parecesse errado, porque negar é resposta legítima. Foto de
+   * outra lista tem que virar incerto, igual foto de outro contrato.
+   */
+  ['foto de outra lista de ids', mapaCom({ impressao: impressaoDosIds([...UM_DE_UM, 99999]) })],
 ]) {
   esqueceTudo()
   conta = montaRede({ token: 0, nfts: 9, score: 0, tem1de1: [24] })

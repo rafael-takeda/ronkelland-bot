@@ -3,3 +3,5 @@
 .vercel
 colar_discord.txt
 node_modules/
+.metadados.json
+.backup-regras-*.json
