@@ -209,5 +209,53 @@ conf(/did not change any of your roles/i.test(v.respostas[0]), 'e que nao mexeu 
 
 globalThis.fetch = original
 
+
+/**
+ * ============================================================================
+ * SUCESSO NAO PODE SAIR NO LOG COMO FALHA
+ * ============================================================================
+ *
+ * Aconteceu em producao: o Redis ja estava consertado, a pessoa lia "Verified"
+ * na tela com os cargos aplicados, e o log da Vercel dizia `[depois] falhou ?`
+ * na MESMA invocacao. Mandou a investigacao pro lado errado -- fui procurar
+ * defeito de entrega numa entrega que tinha funcionado.
+ *
+ * A causa: `conclui()` so devolve algo nos atalhos; no caminho que da certo ele
+ * responde e acaba sem `return`. O log lia `undefined?.ok` como falso.
+ *
+ * Log que grita erro no caminho feliz e pior que log nenhum: ensina a ignorar
+ * log, e e assim que a falha de verdade passa batido.
+ */
+{
+  const { contaDoDepois } = await import('./lib/depois.js')
+
+  console.log('\nSUCESSO NAO PODE SAIR NO LOG COMO FALHA\n')
+
+  /* o caso exato de producao: caminho feliz do conclui, que nao devolve nada */
+  conf(contaDoDepois(undefined) !== 'falhou ?',
+    'caminho que da certo NAO e contado como falha', contaDoDepois(undefined))
+  conf(!/falh/i.test(contaDoDepois(undefined)),
+    'e a palavra "falhou" nao aparece nele')
+  conf(contaDoDepois(null) === 'concluido', 'nulo tambem conta como concluido')
+
+  /* falha de verdade continua sendo falha -- o conserto nao pode cegar o log */
+  conf(contaDoDepois(new Response('', { status: 429 })) === 'falhou 429',
+    'mas falha DE VERDADE continua aparecendo, com o codigo')
+  conf(contaDoDepois(new Response('', { status: 200 })) === 'entregue',
+    'e entrega boa continua dizendo entregue')
+
+  /*
+   * A REGRA E A MESMA QUE O HANDLER USA, nao uma copia.
+   * Copiar a regra pro teste faria ele continuar verde depois de alguem mudar
+   * o handler -- que e exatamente o jeito de o bug voltar sem ninguem ver.
+   */
+  const fonte = await import('node:fs').then((fs) =>
+    fs.readFileSync('api/interacao.js', 'utf8'))
+  conf(/contaDoDepois\(await depois\(\)\)/.test(fonte),
+    'o handler chama a regra em vez de ter a propria copia')
+  conf(!/r\?\.ok \? 'entregue'/.test(fonte),
+    'e a leitura antiga de `r?.ok` nao voltou pro handler')
+}
+
 console.log(falhas ? `\n${falhas} FALHA(S)\n` : '\nTUDO OK\n')
 process.exitCode = falhas ? 1 : 0

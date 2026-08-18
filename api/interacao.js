@@ -18,7 +18,7 @@
  */
 import { valida } from '../lib/assinatura.js'
 import { decide } from '../lib/interacao.js'
-import { agenda } from '../lib/depois.js'
+import { agenda, contaDoDepois } from '../lib/depois.js'
 
 export const config = { api: { bodyParser: false } }
 
@@ -109,8 +109,8 @@ export default async function handler(req, res) {
 
   if (depois) {
     await agenda(async () => {
-      const r = await depois()
-      console.log('[depois]', r?.ok ? 'entregue' : `falhou ${r?.status ?? '?'}`)
+      /* a regra de leitura mora em `lib/depois.js`, junto do teste que a prende */
+      console.log('[depois]', contaDoDepois(await depois()))
     })
   }
 }
