@@ -121,7 +121,18 @@ const endereco32 = (a) => '0x' + a.replace(/^0x/, '').padStart(64, '0')
  * foi perguntado.
  */
 function montaRede(mundo) {
-  const conta = { saldo: 0, dono: 0, score: 0 }
+  const conta = { saldo: 0, dono: 0, score: 0, lista: 0 }
+  /*
+   * OS NFTs DA CARTEIRA, na ordem em que `tokenOfOwnerByIndex` os devolve: os
+   * 1/1 que ela tem primeiro, completados com ids comuns até `nfts`. Daqui sai a
+   * resposta da conferência ao vivo (ver `algumDaListaNaCarteira`).
+   */
+  const daCarteira = mundo.ids || [
+    ...(mundo.tem1de1 || []),
+    ...Array.from({ length: Math.max(0, (mundo.nfts || 0) - (mundo.tem1de1 || []).length) }, (_, i) => 100000 + i),
+  ]
+  // HTTP 403 não é 429 nem 5xx: o `rpc` desiste na hora, sem esperar.
+  const recusa = () => new Response('forbidden', { status: 403 })
   globalThis.fetch = async (url, opcoes) => {
     const u = String(url)
     if (u.includes('ronke-analytics')) {
@@ -146,8 +157,21 @@ function montaRede(mundo) {
       resultado = hex(alvo === TOK ? BigInt(mundo.token || 0) * 10n ** 18n : BigInt(mundo.nfts || 0))
     } else if (dado.startsWith('0x6352211e')) {
       conta.dono++
+      if (mundo.donoQuebrado) return recusa()
       const id = Number(BigInt('0x' + dado.slice(10)))
       resultado = endereco32((mundo.tem1de1 || []).includes(id) ? CARTEIRA : '0x' + '9'.repeat(40))
+    } else if (dado.startsWith('0x2f745c59')) {
+      conta.lista++
+      if (mundo.listaQuebrada) return recusa()
+      const indice = Number(BigInt('0x' + dado.slice(74)))
+      // Índice além do fim: o contrato reverte, como o ERC721Enumerable de verdade.
+      if (indice >= daCarteira.length) {
+        return new Response(
+          JSON.stringify({ jsonrpc: '2.0', id: 1, error: { code: 3, message: 'execution reverted: owner index out of bounds' } }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } },
+        )
+      }
+      resultado = hex(daCarteira[indice])
     }
     return new Response(JSON.stringify({ jsonrpc: '2.0', id: 1, result: resultado }), {
       status: 200,
@@ -167,19 +191,35 @@ function montaRede(mundo) {
 esqueceTudo()
 let conta = montaRede({ token: 0, nfts: 0, score: 0 })
 let m = await medidasDe(CARTEIRA, COMPLETO, { podeVarrer: true })
-conf(conta.dono === 0, 'carteira sem NFT nenhum: ZERO chamadas de ownerOf', `${conta.dono}`)
+conf(conta.dono === 0 && conta.lista === 0, 'carteira sem NFT nenhum: ZERO chamadas de ownerOf e de listagem', `${conta.dono}/${conta.lista}`)
 conf(m.medidas[`ids:${NFT}:${LORD}`] === 0, 'e a medida do Lord sai zero mesmo assim')
 
+/*
+ * CARTEIRA PEQUENA: LISTA OS NFTs DELA, em vez de perguntar id por id.
+ * Uma chamada por NFT da carteira (2 aqui) contra uma por id da lista (159 na
+ * vida real). Ver `algumDaListaNaCarteira`.
+ */
 esqueceTudo()
 conta = montaRede({ token: 5, nfts: 2, score: 0, tem1de1: [] })
-await medidasDe(CARTEIRA, COMPLETO, { podeVarrer: true })
-conf(conta.dono === UM_DE_UM.length, 'carteira COM NFT: aí sim pergunta id por id', `${conta.dono}`)
+m = await medidasDe(CARTEIRA, COMPLETO, { podeVarrer: true })
+conf(conta.lista === 2 && conta.dono === 0, 'carteira com 2 NFTs: lista os 2, sem perguntar id por id', `lista ${conta.lista}, ownerOf ${conta.dono}`)
+conf(m.medidas[`ids:${NFT}:${LORD}`] === 0, 'e nenhum dos 2 é 1/1: zero')
 
 esqueceTudo()
 conta = montaRede({ token: 5, nfts: 9, score: 0, tem1de1: [24] })
 m = await medidasDe(CARTEIRA, COMPLETO, { podeVarrer: true })
 conf(m.medidas[`ids:${NFT}:${LORD}`] === 1, 'quem tem o 1/1 mede 1')
-conf(conta.dono === 2, 'e para no que encontrou, sem perguntar o resto', `${conta.dono} de ${UM_DE_UM.length}`)
+conf(conta.lista === 1, 'e para no que encontrou, sem listar o resto', `${conta.lista} de 9`)
+
+/*
+ * CARTEIRA GRANDE (mais de 20): listar custaria mais que perguntar pelos ids.
+ * Quem pode varrer volta pro id por id, que para no que encontrar.
+ */
+esqueceTudo()
+conta = montaRede({ token: 5, nfts: 25, score: 0, tem1de1: [24] })
+m = await medidasDe(CARTEIRA, COMPLETO, { podeVarrer: true })
+conf(m.medidas[`ids:${NFT}:${LORD}`] === 1, 'carteira com 25 NFTs e o 1/1: mede 1')
+conf(conta.lista === 0 && conta.dono === 2, 'perguntando id por id, sem listar os 25', `lista ${conta.lista}, ownerOf ${conta.dono}`)
 
 /*
  * UMA PERGUNTA SERVE DUAS REGRAS. `Ronke Holder` (1 $RONKE) e `Ronke Chad`
@@ -332,10 +372,27 @@ conf(m.medidas[`ids:${NFT}:${LORD}`] === 0, 'quem não está na foto é zero')
 conf(conta.dono === 0, 'e isso não custa chamada nenhuma', `${conta.dono}`)
 
 /*
- * FOTO QUE NÃO SERVE VIRA INCERTO, e incerto não concede NEM REMOVE. Um caminho
- * rápido nunca pode tirar o cargo mais raro do servidor por não ter tido tempo.
+ * NA FOTO, MAS O RPC FALHOU NA CONFIRMAÇÃO: "não sei", nunca "não é dono".
+ * Até 05/10/2026 isto media ZERO — e um RPC piscando tirava o cargo de um Lord
+ * de verdade, com a medida parecendo resposta.
  */
-for (const [rotulo, mapa] of [
+esqueceTudo()
+conta = montaRede({ token: 0, nfts: 9, score: 0, tem1de1: [24], donoQuebrado: true })
+m = await medidasDe(CARTEIRA, COMPLETO, { lords: mapaCom() })
+conf(!(`ids:${NFT}:${LORD}` in m.medidas), 'na foto, ownerOf falhou: a medida fica AUSENTE, não vira zero')
+conf(m.incerto.includes(`ids:${NFT}:${LORD}`), '  e entra nos incertos, que impedem a remoção')
+
+/*
+ * ==========================================================================
+ * FOTO QUE NÃO SERVE: A CADEIA AO VIVO, PRA QUEM CABE
+ * ==========================================================================
+ * Até 05/10/2026 qualquer foto que não servisse virava INCERTO pra todo mundo.
+ * A foto ficou vencida 39% do tempo entre 30/09 e 05/10, e nesse tempo o botão
+ * respondia "I could not read the chain" até pra quem não tinha NFT nenhum.
+ * Agora quem tem até 20 NFTs é conferido na cadeia, na hora; o incerto ficou só
+ * pra carteira grande, que de fato precisa da foto.
+ */
+const FOTOS_QUE_NAO_SERVEM = [
   ['sem foto', undefined],
   ['foto incompleta', mapaCom({ completo: false })],
   ['foto velha', mapaCom({ quando: AGORA_MAPA - 4 * 60 * 60 * 1000 })],
@@ -344,26 +401,67 @@ for (const [rotulo, mapa] of [
    * O CASO REAL, de 14/08/2026: os 1/1 passaram de 107 pra 159 e a foto velha
    * continuou valendo. Ela respondia ZERO pros 52 novos donos — negando o cargo
    * sem que nada parecesse errado, porque negar é resposta legítima. Foto de
-   * outra lista tem que virar incerto, igual foto de outro contrato.
+   * outra lista não pode ser usada, igual foto de outro contrato.
    */
   ['foto de outra lista de ids', mapaCom({ impressao: impressaoDosIds([...UM_DE_UM, 99999]) })],
-]) {
+]
+for (const [rotulo, mapa] of FOTOS_QUE_NAO_SERVEM) {
+  // Carteira pequena COM o 1/1: a cadeia confirma, e a medida sai 1.
   esqueceTudo()
   conta = montaRede({ token: 0, nfts: 9, score: 0, tem1de1: [24] })
   m = await medidasDe(CARTEIRA, COMPLETO, { lords: mapa })
-  conf(!(`ids:${NFT}:${LORD}` in m.medidas), `${rotulo}: vira INCERTO, não zero`)
-  conf(m.incerto.includes(`ids:${NFT}:${LORD}`), `  e entra na lista de incertos`)
-  conf(conta.dono === 0, `  sem varrer os 107 (quem não pode varrer, não varre)`, `${conta.dono}`)
+  conf(m.medidas[`ids:${NFT}:${LORD}`] === 1, `${rotulo}, carteira com 9 NFTs e o 1/1: mede 1, AO VIVO`)
+  conf(conta.dono === 0 && conta.lista === 1, `  listando a carteira, sem varrer os ids`, `lista ${conta.lista}, ownerOf ${conta.dono}`)
+
+  // Carteira pequena SEM 1/1: zero — resposta, não incerto.
+  esqueceTudo()
+  conta = montaRede({ token: 0, nfts: 9, score: 0, tem1de1: [] })
+  m = await medidasDe(CARTEIRA, COMPLETO, { lords: mapa })
+  conf(m.medidas[`ids:${NFT}:${LORD}`] === 0 && m.incerto.length === 0, `  sem 1/1: zero, e nada incerto`)
+
+  // Carteira GRANDE, sem poder varrer: continua incerto, que não concede nem remove.
+  esqueceTudo()
+  conta = montaRede({ token: 0, nfts: 25, score: 0, tem1de1: [24] })
+  m = await medidasDe(CARTEIRA, COMPLETO, { lords: mapa })
+  conf(!(`ids:${NFT}:${LORD}` in m.medidas) && m.incerto.includes(`ids:${NFT}:${LORD}`), `  carteira com 25 NFTs: INCERTO (precisa da foto)`)
+  conf(conta.dono === 0 && conta.lista === 0, `  sem listar e sem varrer os ids`, `lista ${conta.lista}, ownerOf ${conta.dono}`)
 }
 
 /*
- * E QUEM PODE VARRER continua varrendo: é a varredura, que tem tempo e não tem
- * ninguém olhando uma tela.
+ * O MEMBRO DE 05/10/2026: carteira criada no dia, ZERO Ronkeverse, foto
+ * vencida. Antes: cinco cliques, cinco "I could not read the chain". Agora a
+ * resposta é a verdadeira — não tem 1/1 — sem uma chamada a mais.
  */
 esqueceTudo()
-conta = montaRede({ token: 0, nfts: 9, score: 0, tem1de1: [24] })
+conta = montaRede({ token: 8864, nfts: 0, score: 0 })
+m = await medidasDe(CARTEIRA, COMPLETO, { lords: mapaCom({ quando: AGORA_MAPA - 8 * 60 * 60 * 1000 }) })
+conf(m.medidas[`ids:${NFT}:${LORD}`] === 0 && m.incerto.length === 0, 'carteira sem NFT, foto de 8 h: zero, e NADA incerto')
+conf(conta.lista === 0 && conta.dono === 0, '  sem nenhuma chamada de listagem ou ownerOf', `lista ${conta.lista}, ownerOf ${conta.dono}`)
+
+// A listagem falhou (RPC fora): "não sei", nunca "não tem".
+esqueceTudo()
+conta = montaRede({ token: 0, nfts: 9, score: 0, tem1de1: [24], listaQuebrada: true })
+m = await medidasDe(CARTEIRA, COMPLETO, { lords: mapaCom({ completo: false }) })
+conf(!(`ids:${NFT}:${LORD}` in m.medidas) && m.incerto.includes(`ids:${NFT}:${LORD}`), 'listagem falhou: INCERTO, não zero')
+
+/*
+ * O NFT SAIU ENTRE O balanceOf E A LISTAGEM: o contrato reverte no índice que
+ * passou do fim. Isso é resposta — tudo o que a carteira tem agora já foi visto.
+ */
+esqueceTudo()
+conta = montaRede({ token: 0, nfts: 3, score: 0, ids: [100001, 100002] })
+m = await medidasDe(CARTEIRA, COMPLETO, { lords: undefined })
+conf(m.medidas[`ids:${NFT}:${LORD}`] === 0 && m.incerto.length === 0, 'balanceOf dizia 3, a lista acabou em 2: zero, sem incerto')
+conf(conta.lista === 3, '  parou no índice que reverteu', `${conta.lista}`)
+
+/*
+ * E QUEM PODE VARRER, com carteira grande, continua varrendo id por id: é a
+ * varredura, que tem tempo e não tem ninguém olhando uma tela.
+ */
+esqueceTudo()
+conta = montaRede({ token: 0, nfts: 25, score: 0, tem1de1: [24] })
 m = await medidasDe(CARTEIRA, COMPLETO, { podeVarrer: true })
-conf(m.medidas[`ids:${NFT}:${LORD}`] === 1, 'sem foto, quem PODE varrer acha do jeito caro')
+conf(m.medidas[`ids:${NFT}:${LORD}`] === 1, 'sem foto, carteira grande: quem PODE varrer acha do jeito caro')
 conf(conta.dono > 1, 'e aí sim custa várias chamadas', `${conta.dono}`)
 
 globalThis.fetch = original
