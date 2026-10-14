@@ -31,6 +31,9 @@ const NFT = '0x810b6d1374ac7ba0e83612e7d49f49a13f1de019'
 const CARGO = '222222222222222222'
 const REGRAS = [{ nome: 'Ronkeverse', cargo: CARGO, tipo: 'ERC-721', contrato: NFT, casas: 0, minimo: 1 }]
 
+/** O bloco mais novo da cadeia de mentira. Os pagamentos caem perto dele. */
+const TOPO = 10_000
+
 const original = globalThis.fetch
 const json = (r, status = 200) =>
   new Response(JSON.stringify(r), { status, headers: { 'Content-Type': 'application/json' } })
@@ -54,7 +57,8 @@ function rede(mundo = {}) {
     // ---- explorer
     if (u.includes('explorer')) {
       if (mundo.explorerCaiu) return json({}, 503)
-      return json({ message: 'OK', result: mundo.pagamentos ?? [] })
+      // `explorerVazio` é o 14/10/2026: o índice diz "nada" com o pagamento na cadeia.
+      return json({ message: 'OK', result: mundo.explorerVazio ? [] : mundo.pagamentos ?? [] })
     }
 
     const corpo = JSON.parse(opcoes.body)
@@ -85,6 +89,32 @@ function rede(mundo = {}) {
 
     // ---- RPC
     if (mundo.cadeiaCaiu) return json({}, 500)
+    /*
+     * A CADEIA DE MENTIRA sai de `mundo.pagamentos`: o saldo do endereço num bloco
+     * é a soma do que chegou até ele, e o bloco traz as transações que caíram
+     * nele. `saldoCaiu` derruba só a leitura de saldo (nó sem estado), pra provar
+     * que o explorer segue de reserva. `viaContrato` põe o RON no saldo sem
+     * transação pro endereço no bloco.
+     */
+    const naCadeia = mundo.pagamentos ?? []
+    if (corpo.method === 'eth_blockNumber') return json({ result: '0x' + TOPO.toString(16) })
+    if (corpo.method === 'eth_getBalance') {
+      if (mundo.saldoCaiu) return json({ error: { message: 'missing trie node' } })
+      const [quem, bloco] = corpo.params
+      const soma = naCadeia
+        .filter((t) => t.to.toLowerCase() === quem.toLowerCase() && Number(t.blockNumber) <= Number(BigInt(bloco)))
+        .reduce((s, t) => s + BigInt(t.value), 0n)
+      return json({ result: '0x' + soma.toString(16) })
+    }
+    if (corpo.method === 'eth_getBlockByNumber') {
+      const n = Number(BigInt(corpo.params[0]))
+      const transactions = mundo.viaContrato
+        ? []
+        : naCadeia
+            .filter((t) => Number(t.blockNumber) === n)
+            .map((t) => ({ hash: t.hash, from: t.from, to: t.to, value: '0x' + BigInt(t.value).toString(16) }))
+      return json({ result: { number: corpo.params[0], transactions } })
+    }
     if (corpo.method === 'eth_getTransactionByHash') {
       return json({ result: { to: ENDERECO, from: CARTEIRA, hash: corpo.params[0], blockNumber: '0x64' } })
     }
@@ -108,7 +138,7 @@ const tx = (extra = {}) => ({
   from: CARTEIRA,
   hash: '0xabc',
   value: '10000000000000',
-  blockNumber: '100',
+  blockNumber: String(TOPO - 100),
   timeStamp: String(Math.floor(Date.now() / 1000)),
   isError: '0',
   ...extra,
@@ -149,6 +179,29 @@ conf(!/error|fail/i.test(v.respostas[0]), 'sem soar como erro: é o caso comum d
 conf(v.amarrou === null, 'e não amarra nada')
 
 /* ==========================================================================
+ * O 14/10/2026: O EXPLORER DISSE "NADA" COM O PAGAMENTO NA CADEIA
+ * ==========================================================================
+ * Um membro com um Ronkeverse mandou 0,01 RON e ouviu "I do not see your
+ * transaction yet" até a janela fechar. Agora quem responde é o saldo do
+ * endereço no nó, e o explorer só entra se o nó falhar.
+ */
+console.log('\nA CADEIA PRIMEIRO\n')
+
+v = await roda({ pagamentos: [tx()], explorerVazio: true })
+conf(/Verified/i.test(v.respostas[0]), 'explorer vazio com o pagamento na cadeia: verifica pelo saldo', v.respostas[0]?.split('\n')[0])
+conf(v.amarrou === CARTEIRA, 'e amarra quem pagou', v.amarrou)
+
+v = await roda({ pagamentos: [tx()], explorerCaiu: true })
+conf(/Verified/i.test(v.respostas[0]), 'explorer fora do ar não atrapalha quando o nó responde', v.respostas[0]?.split('\n')[0])
+
+v = await roda({ pagamentos: [tx()], saldoCaiu: true })
+conf(/Verified/i.test(v.respostas[0]), 'nó sem saldo histórico: o explorer segue de reserva', v.respostas[0]?.split('\n')[0])
+
+v = await roda({ pagamentos: [tx()], viaContrato: true })
+conf(/smart contract/i.test(v.respostas[0]), 'RON que chegou por contrato: diz isso, em vez de "não vi"', v.respostas[0]?.split('\n')[0])
+conf(v.amarrou === null, 'e não amarra ninguém')
+
+/* ==========================================================================
  * NINGUEM PODE FICAR SEM RESPOSTA
  * ==========================================================================
  * "pensando..." pra sempre e o pior resultado possivel: a pessoa acabou de
@@ -156,12 +209,15 @@ conf(v.amarrou === null, 'e não amarra nada')
  */
 console.log('\nTODO CAMINHO RESPONDE\n')
 
-v = await roda({ explorerCaiu: true })
-conf(v.respostas.length === 1, 'explorer fora do ar: responde mesmo assim')
+v = await roda({ explorerCaiu: true, saldoCaiu: true })
+conf(v.respostas.length === 1, 'nó e explorer fora do ar: responde mesmo assim')
 conf(/gas is safe/i.test(v.respostas[0]), 'e a primeira coisa que diz é sobre o dinheiro')
 
 v = await roda({ pagamentos: [tx()], cadeiaCaiu: true })
 conf(v.respostas.length === 1, 'cadeia fora do ar: responde mesmo assim')
+// Antes, o RPC que não conferia era engolido e a resposta era "não vi" — pra
+// quem tinha pago.
+conf(/gas is safe/i.test(v.respostas[0]), 'e não diz "não vi" quando não conseguiu conferir', v.respostas[0]?.split('\n')[0])
 
 v = await roda({ reservaTomada: true })
 conf(/Still checking/i.test(v.respostas[0]), 'dois cliques seguidos: o segundo não refaz o trabalho')
@@ -176,7 +232,13 @@ conf(v.reservou === null, 'e nem chega a reservar: o teto vem ANTES do trabalho'
  * TUDO EM INGLES, como o resto do que o membro le.
  */
 const todas = []
-for (const mundo of [{ pagamentos: [tx()] }, { pagamentos: [] }, { explorerCaiu: true }, { apertosHoje: 999 }]) {
+for (const mundo of [
+  { pagamentos: [tx()] },
+  { pagamentos: [] },
+  { explorerCaiu: true, saldoCaiu: true },
+  { pagamentos: [tx()], viaContrato: true },
+  { apertosHoje: 999 },
+]) {
   const r = await roda(mundo)
   todas.push(...r.respostas)
 }

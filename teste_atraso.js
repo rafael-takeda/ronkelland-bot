@@ -44,6 +44,9 @@ const AGORA = 60_000_000
 function montaRede(parouEm) {
   const conta = { blocos: 0, gravou: null }
   globalThis.fetch = async (url, opcoes) => {
+    // O teto vale pra RESERVA, então a consulta por endereço tem que falhar: o
+    // explorer fora do ar e, mais abaixo, o nó sem saldo histórico.
+    if (String(url).includes('explorer')) return new Response('', { status: 503 })
     const corpo = JSON.parse(opcoes.body)
     const json = (r) => new Response(JSON.stringify(r), { status: 200, headers: { 'Content-Type': 'application/json' } })
 
@@ -63,6 +66,7 @@ function montaRede(parouEm) {
 
     // ---- RPC
     if (corpo.method === 'eth_blockNumber') return json({ result: '0x' + AGORA.toString(16) })
+    if (corpo.method === 'eth_getBalance') return json({ error: { message: 'missing trie node' } })
     if (corpo.method === 'eth_getBlockByNumber') {
       conta.blocos++
       return json({ result: { transactions: [] } })
@@ -162,6 +166,9 @@ function redeComDoisPagamentos() {
       return json({ result: null })
     }
     if (corpo.method === 'eth_blockNumber') return json({ result: '0x1388' })
+    // Nó sem saldo histórico: este cenário prova a regra do explorer, que é a
+    // reserva da consulta pelo saldo.
+    if (corpo.method === 'eth_getBalance') return json({ error: { message: 'missing trie node' } })
     if (corpo.method === 'eth_getTransactionByHash') {
       const h = corpo.params[0]
       return json({ result: { to: ENDERECO, from: h === '0xnova' ? CERTA : ERRADA, hash: h, blockNumber: h === '0xnova' ? '0x1388' : '0xfa0' } })
@@ -177,6 +184,64 @@ conf(dois.pagos === 1, 'dois pagamentos no mesmo endereco viram UM', `${dois.pag
 conf(dois.descartados === 1, 'e o outro e contado como descartado', `${dois.descartados}`)
 conf(visto.amarrou.length === 1, 'amarra e chamado uma vez so', `${visto.amarrou.length}x`)
 conf(visto.amarrou[0] === CERTA, 'e amarra a carteira do bloco MAIOR, nao a ultima da lista', visto.amarrou[0])
+conf(dois.fonte === 'explorer', 'e o log diz que quem respondeu foi o explorer', dois.fonte)
+
+/* ==========================================================================
+ * O 14/10/2026: O EXPLORER DISSE "NADA" E A VARREDURA ACREDITOU
+ * ==========================================================================
+ * A varredura perguntou ao explorer de minuto em minuto, das 03:57 às 04:01,
+ * ouviu "nada" todas as vezes e nunca abriu um bloco: resposta vazia contava
+ * como verdade, e a reserva só entrava quando ele FALHAVA. O pagamento estava
+ * na cadeia desde 03:52. Aqui o explorer repete o "nada" e o saldo responde.
+ */
+console.log('\nPELO SALDO, COM O EXPLORER DIZENDO NADA\n')
+
+function redePeloSaldo() {
+  const visto = { amarrou: [], blocos: 0 }
+  // A carteira errada primeiro, a certa depois — de novo o caso da correção.
+  const PAGAS = [
+    { de: ERRADA, hash: '0xvelha', bloco: 4900 },
+    { de: CERTA, hash: '0xnova', bloco: 5000 },
+  ]
+  globalThis.fetch = async (url, opcoes) => {
+    const u = String(url)
+    const json = (r) => new Response(JSON.stringify(r), { status: 200, headers: { 'Content-Type': 'application/json' } })
+    if (u.includes('explorer')) return json({ message: 'No transactions found', result: [], status: '0' })
+    if (u.includes('discord.com')) return json({ roles: [] })
+
+    const corpo = JSON.parse(opcoes.body)
+    if (Array.isArray(corpo)) {
+      const [cmd, chave] = corpo
+      if (cmd === 'HGETALL') return json({ result: [ENDERECO, JSON.stringify({ membro: MEMBRO, ate: Date.now() + 300_000 })] })
+      if (cmd === 'GET' && chave === 'rl:bloco') return json({ result: '5000' })
+      if (cmd === 'EVAL') {
+        visto.amarrou.push(corpo[corpo.length - 2])
+        return json({ result: '' })
+      }
+      return json({ result: null })
+    }
+    if (corpo.method === 'eth_blockNumber') return json({ result: '0x' + (5010).toString(16) })
+    if (corpo.method === 'eth_getBalance') {
+      const n = Number(BigInt(corpo.params[1]))
+      return json({ result: '0x' + PAGAS.filter((p) => p.bloco <= n).length.toString(16) })
+    }
+    if (corpo.method === 'eth_getBlockByNumber') {
+      visto.blocos++
+      const n = Number(BigInt(corpo.params[0]))
+      const transactions = PAGAS.filter((p) => p.bloco === n).map((p) => ({ hash: p.hash, from: p.de, to: ENDERECO, value: '0x1' }))
+      return json({ result: { number: corpo.params[0], transactions } })
+    }
+    return json({ result: '0x0' })
+  }
+  return visto
+}
+
+const peloSaldo = redePeloSaldo()
+const ps = await varreduraDePagamento({ servidor: '1', regras: [], segredo: 'segredo-de-teste' })
+conf(ps.pagos === 1, 'explorer vazio, pagamento na cadeia: a varredura acha', `${ps.pagos}`)
+conf(peloSaldo.amarrou[0] === CERTA, 'e amarra o pagamento MAIS NOVO', peloSaldo.amarrou[0])
+conf(ps.fonte === 'saldo', 'e o log diz que foi pelo saldo', ps.fonte)
+conf(peloSaldo.blocos === 1, 'abrindo UM bloco, não a janela inteira', `${peloSaldo.blocos}`)
 
 globalThis.fetch = original
 

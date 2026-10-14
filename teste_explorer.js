@@ -138,6 +138,22 @@ conf(r.ok === false, 'explorer fora do ar devolve ok:false')
 conf(r.achados.length === 0, 'e nada de achados')
 console.log('          (o ciclo cai na varredura de blocos — lenta e míope, mas sem terceiro)')
 
+/*
+ * ERRO DO ÍNDICE NÃO É "NINGUÉM PAGOU". O Blockscout responde erro com HTTP 200 e
+ * `result: null`; lido como lista vazia, o botão dizia "não vi" a quem tinha pago.
+ */
+globalThis.fetch = async () => json({ message: 'Query timeout', result: null, status: '0' })
+r = await pagamentosPara(ALVO, Date.now() - 600_000)
+conf(r.ok === false, 'erro do explorer com HTTP 200 devolve ok:false, não lista vazia')
+
+/* E o RPC que não consegue conferir também não é "não pagou". */
+globalThis.fetch = async (url) =>
+  String(url).includes('explorer')
+    ? json({ message: 'OK', result: [txExplorer()] })
+    : json({ jsonrpc: '2.0', id: 1, error: { message: 'header not found' } })
+r = await pagamentosPara(ALVO, Date.now() - 600_000)
+conf(r.ok === false, 'RPC que não confere devolve ok:false, não "nada achado"')
+
 globalThis.fetch = original
 
 // ------------------------------------------------------------- de verdade
