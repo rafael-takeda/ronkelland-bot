@@ -7,7 +7,7 @@
     "ERC-721-ids": "QUAIS NFTs tem. Serve pra 1/1: ter QUALQUER um da lista 'ids' basta. Nao leva 'minimo' -- a resposta e sim ou nao.",
     "score": "O Ronke Score da carteira, da API de analytics. NAO leva 'contrato': nao e posse, e historico. 'minimo' e a pontuacao de corte."
   },
-  "_sobreOScore": "Score e uma foto refeita 1x por dia as 07:00 UTC (https://ronke-analytics.vercel.app/developers). Quem comprar hoje so ve o cargo amanha -- e a mensagem pro membro tem que dizer isso, senao ele acha que o bot quebrou.",
+  "_sobreOScore": "Score e uma foto refeita 1x por dia as 07:00 UTC (https://ronkeverse.com/score?tab=developers). Quem comprar hoje so ve o cargo amanha -- e a mensagem pro membro tem que dizer isso, senao ele acha que o bot quebrou.",
   "regras": [
     {
       "nome": "Ronke Holder",

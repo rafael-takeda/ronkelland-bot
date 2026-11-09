@@ -207,6 +207,15 @@ conf(v.amarrou === null, 'e não amarra ninguém')
  * "pensando..." pra sempre e o pior resultado possivel: a pessoa acabou de
  * mandar uma transacao e nao sabe se deu certo, se errou, ou se o bot morreu.
  */
+/*
+ * QUEM COMPROU HOJE NÃO TEM CARGO HOJE, e a mensagem tem que dizer por quê. O
+ * Ronke Score é uma foto diária: em 08/11/2026 uma pessoa comprou depois da foto
+ * e ouviu só "does not hold enough", que soa como bot quebrado.
+ */
+const { msg } = await import('./lib/mensagens.js')
+conf(/once a day/i.test(msg.verificado(CARTEIRA, [])), 'sem cargo: explica que o score só atualiza uma vez por dia')
+conf(!/once a day/i.test(msg.verificado(CARTEIRA, [CARGO])), 'e quem recebeu cargo não leva o aviso')
+
 console.log('\nTODO CAMINHO RESPONDE\n')
 
 v = await roda({ explorerCaiu: true, saldoCaiu: true })

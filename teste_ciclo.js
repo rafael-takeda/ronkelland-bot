@@ -135,7 +135,7 @@ function montaRede(mundo) {
   const recusa = () => new Response('forbidden', { status: 403 })
   globalThis.fetch = async (url, opcoes) => {
     const u = String(url)
-    if (u.includes('ronke-analytics')) {
+    if (u.includes('/api/v1/')) {
       conta.score++
       if (mundo.scoreQuebrado) return new Response('{}', { status: 500 })
       return new Response(
@@ -271,7 +271,7 @@ const CHAVE_RANK = 'rank:69'
 
 function redeComRank(resposta) {
   globalThis.fetch = async (url) => {
-    if (!String(url).includes('ronke-analytics')) throw new Error('só o score devia ser consultado')
+    if (!String(url).includes('/api/v1/')) throw new Error('só o score devia ser consultado')
     return new Response(JSON.stringify(resposta), {
       status: resposta === null ? 500 : 200,
       headers: { 'Content-Type': 'application/json' },
