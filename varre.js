@@ -25,7 +25,8 @@
  */
 import { atualizaLords, limpaDesamarrados, revarredura, varreduraDePagamento } from './lib/ciclo.js'
 import { validaRegras } from './lib/regras.js'
-import { regrasEmUso } from './lib/painelrota.js'
+import { regrasEmUso, regrasRenovadas } from './lib/painelrota.js'
+import { travaFresca } from './lib/trava.js'
 
 /*
  * AS REGRAS VÊM DO PAINEL, quando ele foi usado, e do arquivo quando não.
@@ -34,7 +35,7 @@ import { regrasEmUso } from './lib/painelrota.js'
  * Discord — e o sintoma seria "criei a regra e não aconteceu nada", sem nenhuma
  * pista de que existem duas fontes.
  */
-const regras = await regrasEmUso()
+let regras = await regrasEmUso()
 const servidor = process.env.DISCORD_GUILD_ID
 const segredo = process.env.SEGREDO
 
@@ -106,10 +107,38 @@ if (!servidor || !segredo) {
    * que alguém está esperando em tempo real.
    */
   let seguidas = 0
+  let pausado = false
 
   do {
+    /*
+     * A REVARREDURA DIÁRIA RODA SOZINHA. Enquanto a trava existir (ver
+     * `lib/trava.js`) o serviço continua de pé e só pula as voltas, em vez de ser
+     * parado: parado, o vigia do servidor avisaria "PARADO" toda madrugada.
+     */
+    if (travaFresca(process.env.TRAVA_REVARRE)) {
+      if (!pausado) console.log(`${new Date().toISOString().slice(11, 19)}  revarredura diária em andamento: pagamentos em pausa`)
+      pausado = true
+      if (Date.now() >= ate) break
+      await new Promise((f) => setTimeout(f, intervalo))
+      continue
+    }
+    if (pausado) {
+      pausado = false
+      console.log(`${new Date().toISOString().slice(11, 19)}  revarredura terminou: pagamentos de volta`)
+    }
+
     let r
     try {
+      /*
+       * AS REGRAS DO PAINEL, DE NOVO A CADA VOLTA. Este processo agora fica vivo
+       * 24 h, e as regras eram lidas só na partida. Ver `regrasRenovadas`.
+       */
+      const novas = await regrasRenovadas(regras)
+      if (novas !== regras) {
+        console.log(`${new Date().toISOString().slice(11, 19)}  regras atualizadas pelo painel: ${novas.length} regra(s)`)
+        regras = novas
+      }
+
       /*
        * A FILA DOS DESAMARRADOS VEM PRIMEIRO, e a cada volta.
        *
