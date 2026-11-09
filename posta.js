@@ -20,6 +20,7 @@
  * O efeito prático é bom: mudar o texto da mensagem vira rodar de novo.
  */
 import { mensagemDoCanal } from './lib/resposta.js'
+import { regrasEmUso } from './lib/painelrota.js'
 
 const canal = process.argv[2]
 const soVer = process.argv.includes('--ver')
@@ -37,14 +38,18 @@ if (!token) {
   process.exit(1)
 }
 
-const corpo = mensagemDoCanal()
+// As regras que valem AGORA (as do painel): é delas que sai "como ganhar cada cargo".
+const regras = await regrasEmUso()
+const corpo = mensagemDoCanal(regras)
 
 // ------------------------------------------------------------------ preview
 console.log('\n┌─ como vai aparecer ' + '─'.repeat(46))
 console.log('│')
 console.log('│  ' + corpo.embeds[0].title)
 for (const linha of corpo.embeds[0].description.split('\n')) {
-  console.log('│  ' + linha.replace(/\*\*/g, ''))
+  // `<@&id>` o Discord desenha como a pílula do cargo; aqui vira @nome pra dar pra ler.
+  const legivel = linha.replace(/<@&(\d+)>/g, (_, id) => '@' + (regras.find((r) => String(r.cargo) === id)?.nome || id))
+  console.log('│  ' + legivel.replace(/\*\*/g, ''))
 }
 console.log('│')
 console.log('│  [ ' + corpo.components[0].components[0].label + ' ]')
