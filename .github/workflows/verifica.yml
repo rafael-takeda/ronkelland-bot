@@ -1,5 +1,17 @@
 # A varredura do Ronkelland.
 #
+# DESLIGADO DE PROPOSITO desde 09/11/2026: a varredura roda como servico systemd
+# no VPS (`ronkelland-varre`, o laco de pagamento, e `ronkelland-revarre.timer`,
+# a revarredura diaria as 05:17 UTC), com o mesmo `varre.js` e o mesmo Redis. Ligado
+# junto com o VPS, os dois disputariam os mesmos pendentes. O agendamento daqui
+# entregava execucoes com buracos de horas e, num deles, um membro que pagou
+# nao recebeu o cargo.
+#
+# Pra voltar ao Actions: `gh workflow enable verifica.yml` e, no VPS,
+# `systemctl disable --now ronkelland-varre ronkelland-revarre.timer`.
+# A copia do VPS nao e um clone git: atualizar e extrair `git archive HEAD` em
+# /opt/ronkelland-bot (sem tocar no .env) e reiniciar o servico.
+#
 # DUAS ROTINAS COM RITMOS DIFERENTES, e por isso dois jobs:
 #
 #   pagamento -- quem esta esperando AGORA. De minuto em minuto, senao a pessoa
